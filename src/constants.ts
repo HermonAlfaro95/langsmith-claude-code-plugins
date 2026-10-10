@@ -12,6 +12,7 @@ const CLAUDE_AGENT_CLOSURE_EVENT_SUFFIX = ":agent-closure";
 const CLAUDE_TURN_PROGRESS_EVENT_SUFFIX = ":turn-progress";
 const CLAUDE_TOOL_SNAPSHOT_EVENT_KIND = "claude-tool-snapshot-v1";
 const CLAUDE_SETTLEMENT_EVENT_KIND = "run-settlement-patch";
+const CLAUDE_RECONSTRUCTION_DEFERRED_REASON = "missing-thread-identity";
 const CLAUDE_NATIVE_SOURCE_STORAGE_DIRECTORY = "claude_native_sources_v1";
 
 // Same build-time source as config.ts, read independently of its custom base.
@@ -216,6 +217,7 @@ export {
   CLAUDE_TURN_PROGRESS_EVENT_SUFFIX,
   CLAUDE_TOOL_SNAPSHOT_EVENT_KIND,
   CLAUDE_SETTLEMENT_EVENT_KIND,
+  CLAUDE_RECONSTRUCTION_DEFERRED_REASON,
   CLAUDE_NATIVE_SOURCE_STORAGE_DIRECTORY,
   TRUSTED_INTEGRATION_VERSION,
   HOOK_EVENT_NAMES,

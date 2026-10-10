@@ -2,6 +2,7 @@ import { chmodSync, existsSync, mkdirSync, renameSync, rmdirSync, statSync } fro
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createCaptureStore } from "@langchain/plugins-base/storage/capture";
+import type { ReconstructionJob } from "@langchain/plugins-base/tracing/reconstruction";
 
 import {
   alpha,
@@ -28,12 +29,25 @@ import {
   useReconcileSandbox,
   waitFor,
 } from "./fixtures/reconcile-sandbox.js";
-import { recordRun, recordToolOrigin, readTurnRecord, turnRecordPath } from "./turn-record.js";
+import {
+  recordDelivered,
+  recordRun,
+  recordToolOrigin,
+  readTurnRecord,
+  turnRecordPath,
+} from "./turn-record.js";
+import { queueOrigin } from "./queue.js";
 import { getSessionState, loadState } from "./state.js";
-import { turnAttributionWithToolOrigins } from "./tracing-engine.js";
+import {
+  acknowledgeClaudeSharedDeliveries,
+  reconstructClaudeRun,
+  turnAttributionWithToolOrigins,
+} from "./tracing-engine.js";
 import {
   CLAUDE_CODE_INTEGRATION,
   CLAUDE_RUN_RECONSTRUCTION_EVENT_SUFFIX,
+  CLAUDE_RUN_SNAPSHOT_EVENT_SUFFIX,
+  CLAUDE_RUN_SNAPSHOT_SOURCE_SEPARATOR,
   SHARED_ENGINE_STORAGE_DIRECTORY,
 } from "./constants.js";
 
@@ -760,6 +774,505 @@ describe("settling a turn's repository and author", { timeout: 120_000 }, () => 
         return Object.entries(attributed).every(([key, value]) => metadata[key] === value);
       }),
     ).toBe(true);
+  });
+
+  it("posts a notification model with launch attribution after the Agent upload settles", async () => {
+    const base = session("background-notify-delayed-receipt", plain);
+    await prompt(base);
+    await tool(base, "Read", { file_path: join(alpha, "seed.txt") });
+    expect(await waitFor(() => metadataOf("Read").repository_name === "acme/a")).toBe(true);
+    await task(base, "agent-bg-delayed");
+    reply(base, 1, [
+      { id: "use-Read", name: "Read", input: { file_path: join(alpha, "seed.txt") } },
+      {
+        id: "use-agent-bg-delayed",
+        name: "Task",
+        input: { prompt: "go and look" },
+        agentId: "agent-bg-delayed",
+      },
+    ]);
+    await stop(base);
+
+    const launchRecord = recordFiles(base.session_id)
+      .map((name) => readTurnRecord(join(recordDir(base.session_id), name)))
+      .find((record) => record?.root?.metadata.turn_number === 1);
+    expect(launchRecord).toBeDefined();
+    expect(launchRecord?.closed).toBe(false);
+    expect(
+      recordFiles(base.session_id)
+        .map((name) => readTurnRecord(join(recordDir(base.session_id), name)))
+        .some((record) => record?.root?.metadata.turn_number === 2),
+    ).toBe(false);
+
+    const heldAgentUpload = service.holdNextUploadNamed("Agent");
+    await subagent(base, "agent-bg-delayed");
+    await heldAgentUpload.entered;
+    try {
+      const openLaunchRecord = recordFiles(base.session_id)
+        .map((name) => readTurnRecord(join(recordDir(base.session_id), name)))
+        .find((record) => record?.root?.metadata.turn_number === 1);
+      expect(openLaunchRecord?.closed).toBe(false);
+      expect(openLaunchRecord?.children.some((run) => run.name === "Agent")).toBe(true);
+      expect(
+        recordFiles(base.session_id)
+          .map((name) => readTurnRecord(join(recordDir(base.session_id), name)))
+          .some((record) => record?.root?.metadata.turn_number === 2),
+      ).toBe(false);
+      await notification(base, "agent-bg-delayed");
+      appendReply(base, 2);
+      await stop(base);
+      const notificationRecord = recordFiles(base.session_id)
+        .map((name) => readTurnRecord(join(recordDir(base.session_id), name)))
+        .find((record) => record?.root?.metadata.turn_number === 2);
+      const notificationModel = notificationRecord?.children.find(
+        (run) => run.name === "Claude" && run.parent_run_id === notificationRecord.root?.run_id,
+      );
+      expect(notificationModel).toBeDefined();
+      const sourceRef = `${notificationRecord!.root!.run_id}${CLAUDE_RUN_SNAPSHOT_SOURCE_SEPARATOR}${notificationModel!.run_id}${CLAUDE_RUN_SNAPSHOT_EVENT_SUFFIX}`;
+      const reconstruction = {
+        integration: CLAUDE_CODE_INTEGRATION,
+        sessionId: base.session_id,
+        accountFingerprint: notificationRecord!.origin,
+        turnId: notificationRecord!.root!.run_id,
+        eventId: `${notificationModel!.run_id}${CLAUDE_RUN_RECONSTRUCTION_EVENT_SUFFIX}`,
+        sourceRefs: [sourceRef],
+        privacyMode: "full",
+        turnEvidence: {
+          rootRunId: notificationModel!.trace_id,
+          childRunIds: [notificationModel!.run_id],
+          closureState: "authoritative",
+        },
+        sourceSnapshots: [
+          {
+            sourceRef,
+            sourceAgeStartedAtMs: Date.now(),
+            submission: {
+              operation: "post",
+              integration: CLAUDE_CODE_INTEGRATION,
+              privacyMode: "full",
+              metadata: {
+                integration: CLAUDE_CODE_INTEGRATION,
+                threadId: base.session_id,
+                runType: "root",
+                agentType: "root",
+              },
+              privacyContext: { status: "completed" },
+              run: {
+                id: notificationModel!.run_id,
+                name: notificationModel!.name,
+                run_type: notificationModel!.run_type,
+                start_time: notificationModel!.start_time,
+                parent_run_id: notificationModel!.parent_run_id,
+                trace_id: notificationModel!.trace_id,
+                dotted_order: notificationModel!.dotted_order,
+                inputs: {},
+              },
+            },
+          },
+        ],
+      } as unknown as ReconstructionJob;
+      expect(
+        reconstructClaudeRun(reconstruction, {
+          project: "reconcile-e2e",
+          recordOrigin: notificationRecord!.origin,
+          sessionId: base.session_id,
+          stateFilePath: join(sandbox.root, "state.json"),
+        }).status,
+      ).toBe("deferred");
+      expect(
+        service.started.some(
+          (wire) => wire.action === "post" && wire.run.id === notificationModel?.run_id,
+        ),
+      ).toBe(false);
+    } finally {
+      heldAgentUpload.release();
+    }
+
+    const attributed = {
+      repository_name: "acme/a",
+      git_branch: "trunk-a",
+      ls_attribution_identifier: "Alpha Owner",
+    };
+    expect(
+      await waitFor(() => {
+        const notificationTurn = service.created.find(
+          (run) =>
+            run.name === "Claude Code Turn" &&
+            run.extra?.metadata?.thread_id === base.session_id &&
+            run.extra?.metadata?.turn_number === 2,
+        );
+        return (
+          notificationTurn !== undefined &&
+          service.created.some(
+            (run) => run.name === "Claude" && run.parent_run_id === notificationTurn.id,
+          )
+        );
+      }),
+    ).toBe(true);
+    const notificationTurn = service.created.find(
+      (run) =>
+        run.name === "Claude Code Turn" &&
+        run.extra?.metadata?.thread_id === base.session_id &&
+        run.extra?.metadata?.turn_number === 2,
+    )!;
+    const notificationModel = service.created.find(
+      (run) => run.name === "Claude" && run.parent_run_id === notificationTurn.id,
+    );
+    expect(notificationModel?.extra?.metadata).toMatchObject(attributed);
+  });
+
+  it("waits for every matching Agent launch receipt before posting a notification model", async () => {
+    const stateFilePath = join(sandbox.root, "delayed-notification-state.json");
+    const sessionId = "delayed-notification";
+    const config = {
+      apiKey: "test-key",
+      apiBaseUrl: "https://api.example",
+      stateFilePath,
+      redact: false,
+    } as unknown as Parameters<typeof acknowledgeClaudeSharedDeliveries>[1];
+    const origin = queueOrigin(config);
+    const launchRunId = "launch-turn";
+    const agentRunId = "launch-agent";
+    const notificationRunId = "notification-turn";
+    const modelRunId = "notification-model";
+    const launchPath = turnRecordPath(stateFilePath, sessionId, launchRunId);
+    const attributed = {
+      repository_name: "acme/a",
+      git_branch: "trunk-a",
+      ls_attribution_identifier: "Alpha Owner",
+    };
+    recordRun({
+      path: launchPath,
+      run: {
+        id: launchRunId,
+        name: "Claude Code Turn",
+        run_type: "chain",
+        trace_id: launchRunId,
+        dotted_order: "launch",
+        extra: { metadata: {} },
+      },
+      tracing: "full",
+      origin,
+      root: true,
+      shared: true,
+    });
+    for (const [id, name, dottedOrder, metadata] of [
+      ["launch-read", "Read", "launch.read", attributed],
+      [agentRunId, "Agent", "launch.agent", {}],
+      ["launch-other", "Explore Subagent", "launch.other", {}],
+    ] as const) {
+      recordRun({
+        path: launchPath,
+        run: {
+          id,
+          name,
+          run_type: "tool",
+          parent_run_id: launchRunId,
+          trace_id: launchRunId,
+          dotted_order: dottedOrder,
+          extra: { metadata },
+        },
+        tracing: "full",
+        origin,
+        shared: true,
+      });
+    }
+    const captureStore = createCaptureStore(join(sandbox.root, "delayed-notification-captures"));
+    let wakeCount = 0;
+    const engineContext = {
+      accountFingerprint: "current-account",
+      captureStore,
+      destinations: [{ id: "current-account" }],
+      project: "test",
+      recordOrigin: origin,
+      session: {
+        async wake() {
+          wakeCount += 1;
+        },
+      },
+      sessionId,
+      stateFilePath,
+      storageRoot: join(sandbox.root, "delayed-notification-captures"),
+    } as unknown as Parameters<typeof acknowledgeClaudeSharedDeliveries>[0];
+    const captureLaunchChild = async (id: string, delivered: boolean) => {
+      const scope = {
+        integration: CLAUDE_CODE_INTEGRATION,
+        sessionId,
+        turnId: launchRunId,
+        eventId: id,
+      };
+      await captureStore.capture({
+        ...scope,
+        runId: id,
+        destinationFingerprint: engineContext.accountFingerprint,
+        eventKind: "test-run-v1",
+        normalizedPayload: {},
+        turnEvidence: {},
+        metadataProvenance: {
+          integration: CLAUDE_CODE_INTEGRATION,
+          threadId: sessionId,
+          runType: "tool",
+          agentType: "root",
+        },
+      });
+      if (delivered) {
+        await captureStore.recordOutcome({
+          ...scope,
+          destination: engineContext.accountFingerprint,
+          outcome: "delivered",
+        });
+      }
+    };
+    await captureLaunchChild("launch-read", true);
+    await captureLaunchChild(agentRunId, false);
+    await captureLaunchChild("launch-other", false);
+    await acknowledgeClaudeSharedDeliveries(engineContext, config, sessionId);
+    expect(wakeCount).toBe(1);
+    recordRun({
+      path: turnRecordPath(stateFilePath, sessionId, notificationRunId),
+      run: {
+        id: notificationRunId,
+        name: "Claude Code Turn",
+        run_type: "chain",
+        parent_run_id: agentRunId,
+        trace_id: launchRunId,
+        dotted_order: "launch.agent.notification",
+        extra: { metadata: {} },
+      },
+      tracing: "full",
+      origin,
+      root: true,
+      shared: true,
+    });
+    const sourceRef = `${notificationRunId}:${modelRunId}${CLAUDE_RUN_SNAPSHOT_EVENT_SUFFIX}`;
+    const source = {
+      operation: "post",
+      integration: CLAUDE_CODE_INTEGRATION,
+      privacyMode: "full",
+      metadata: {
+        integration: CLAUDE_CODE_INTEGRATION,
+        threadId: sessionId,
+        runType: "root",
+        agentType: "root",
+      },
+      privacyContext: { status: "completed" },
+      run: {
+        id: modelRunId,
+        name: "Claude",
+        run_type: "llm",
+        start_time: "2026-10-10T00:00:00.000Z",
+        parent_run_id: notificationRunId,
+        trace_id: launchRunId,
+        dotted_order: "launch.agent.notification.model",
+        inputs: {},
+      },
+    } as const;
+    const notificationPath = turnRecordPath(stateFilePath, sessionId, notificationRunId);
+    recordRun({
+      path: notificationPath,
+      run: { ...source.run, extra: { metadata: {} } },
+      tracing: "full",
+      origin,
+      shared: true,
+    });
+    const job = {
+      integration: CLAUDE_CODE_INTEGRATION,
+      sessionId,
+      accountFingerprint: "current-account",
+      turnId: notificationRunId,
+      eventId: `${modelRunId}${CLAUDE_RUN_RECONSTRUCTION_EVENT_SUFFIX}`,
+      sourceRefs: [sourceRef],
+      privacyMode: "full",
+      turnEvidence: {
+        rootRunId: launchRunId,
+        childRunIds: [modelRunId],
+        closureState: "authoritative",
+      },
+      sourceSnapshots: [{ sourceRef, sourceAgeStartedAtMs: Date.now(), submission: source }],
+    } as unknown as ReconstructionJob;
+    const context = { project: "test", recordOrigin: origin, sessionId, stateFilePath };
+
+    const beforeReceipts = reconstructClaudeRun(job, context);
+    expect(beforeReceipts.status).toBe("deferred");
+
+    for (const id of [agentRunId, "launch-other"]) {
+      await captureStore.recordOutcome({
+        integration: CLAUDE_CODE_INTEGRATION,
+        sessionId,
+        turnId: launchRunId,
+        eventId: id,
+        destination: engineContext.accountFingerprint,
+        outcome: "delivered",
+      });
+    }
+    await acknowledgeClaudeSharedDeliveries(engineContext, config, sessionId);
+    expect(wakeCount).toBe(2);
+    const afterReceipts = reconstructClaudeRun(job, context);
+    expect(afterReceipts.status).toBe("ready");
+    if (afterReceipts.status !== "ready") return;
+    expect(afterReceipts.outputs[0]?.submission.operation).toBe("post");
+    expect(afterReceipts.outputs[0]?.submission.metadata.base).toMatchObject(attributed);
+    expect(readTurnRecord(notificationPath)?.delivered.has(modelRunId)).toBe(false);
+  });
+
+  it.each([
+    { label: "same-origin launch", launchOrigin: "current-origin", nested: false },
+    { label: "nested same-origin launch", launchOrigin: "current-origin", nested: true },
+    { label: "foreign-origin launch", launchOrigin: "foreign-origin", nested: false },
+  ])("keeps current turn attribution for a $label", ({ launchOrigin, nested }) => {
+    const stateFilePath = join(sandbox.root, "unmatched-notification-state.json");
+    const sessionId = "unmatched-notification";
+    const traceRootId = nested ? "outer-trace-root" : "foreign-launch-turn";
+    const launchRunId = nested ? "nested-launch-turn" : traceRootId;
+    const launchDottedOrder = nested ? "outer.agent.notification" : "foreign-launch";
+    const agentRunId = "foreign-agent";
+    const notificationRunId = "unmatched-notification-turn";
+    const modelRunId = "unmatched-notification-model";
+    const launchPath = turnRecordPath(stateFilePath, sessionId, launchRunId);
+    const currentOrigin = "current-origin";
+    if (nested) {
+      const traceRootPath = turnRecordPath(stateFilePath, sessionId, traceRootId);
+      recordRun({
+        path: traceRootPath,
+        run: {
+          id: traceRootId,
+          name: "Claude Code Turn",
+          run_type: "chain",
+          trace_id: traceRootId,
+          dotted_order: "outer",
+          extra: { metadata: {} },
+        },
+        tracing: "full",
+        origin: currentOrigin,
+        root: true,
+        shared: true,
+      });
+      recordRun({
+        path: traceRootPath,
+        run: {
+          id: "outer-agent",
+          name: "Agent",
+          run_type: "tool",
+          parent_run_id: traceRootId,
+          trace_id: traceRootId,
+          dotted_order: "outer.agent",
+          extra: { metadata: {} },
+        },
+        tracing: "full",
+        origin: currentOrigin,
+        shared: true,
+      });
+    }
+    recordRun({
+      path: launchPath,
+      run: {
+        id: launchRunId,
+        name: "Claude Code Turn",
+        run_type: "chain",
+        ...(nested ? { parent_run_id: "outer-agent" } : {}),
+        trace_id: traceRootId,
+        dotted_order: launchDottedOrder,
+        extra: { metadata: {} },
+      },
+      tracing: "full",
+      origin: launchOrigin,
+      root: true,
+      shared: true,
+    });
+    recordRun({
+      path: launchPath,
+      run: {
+        id: agentRunId,
+        name: "Agent",
+        run_type: "tool",
+        parent_run_id: launchRunId,
+        trace_id: traceRootId,
+        dotted_order: `${launchDottedOrder}.agent`,
+        extra: { metadata: { repository_name: "acme/a" } },
+      },
+      tracing: "full",
+      origin: launchOrigin,
+      shared: true,
+    });
+    const notificationPath = turnRecordPath(stateFilePath, sessionId, notificationRunId);
+    recordRun({
+      path: notificationPath,
+      run: {
+        id: notificationRunId,
+        name: "Claude Code Turn",
+        run_type: "chain",
+        parent_run_id: agentRunId,
+        trace_id: traceRootId,
+        dotted_order: `${launchDottedOrder}.agent.notification`,
+        extra: {
+          metadata: {
+            repository_name: "acme/b",
+            git_branch: "trunk-b",
+            ls_attribution_identifier: "Beta Owner",
+          },
+        },
+      },
+      tracing: "full",
+      origin: currentOrigin,
+      root: true,
+      shared: true,
+    });
+    const sourceRef = `${notificationRunId}:${modelRunId}${CLAUDE_RUN_SNAPSHOT_EVENT_SUFFIX}`;
+    const source = {
+      operation: "post",
+      integration: CLAUDE_CODE_INTEGRATION,
+      privacyMode: "full",
+      metadata: {
+        integration: CLAUDE_CODE_INTEGRATION,
+        threadId: sessionId,
+        runType: "root",
+        agentType: "root",
+      },
+      privacyContext: { status: "completed" },
+      run: {
+        id: modelRunId,
+        name: "Claude",
+        run_type: "llm",
+        start_time: "2026-10-10T00:00:00.000Z",
+        parent_run_id: notificationRunId,
+        trace_id: traceRootId,
+        dotted_order: `${launchDottedOrder}.agent.notification.model`,
+        inputs: {},
+      },
+    } as const;
+    const job = {
+      integration: CLAUDE_CODE_INTEGRATION,
+      sessionId,
+      accountFingerprint: "current-account",
+      turnId: notificationRunId,
+      eventId: `${modelRunId}${CLAUDE_RUN_RECONSTRUCTION_EVENT_SUFFIX}`,
+      sourceRefs: [sourceRef],
+      privacyMode: "full",
+      turnEvidence: {
+        rootRunId: traceRootId,
+        childRunIds: [modelRunId],
+        closureState: "authoritative",
+      },
+      sourceSnapshots: [{ sourceRef, sourceAgeStartedAtMs: Date.now(), submission: source }],
+    } as unknown as ReconstructionJob;
+
+    const context = {
+      project: "test",
+      recordOrigin: currentOrigin,
+      sessionId,
+      stateFilePath,
+    };
+    const beforeReceipt = reconstructClaudeRun(job, context);
+    expect(beforeReceipt.status).toBe(launchOrigin === currentOrigin ? "deferred" : "ready");
+    if (launchOrigin === currentOrigin) recordDelivered(launchPath, agentRunId, currentOrigin);
+    const result = reconstructClaudeRun(job, context);
+    expect(result.status).toBe("ready");
+    if (result.status !== "ready") return;
+    expect(result.outputs[0]?.submission.metadata.base).toMatchObject({
+      repository_name: "acme/b",
+      git_branch: "trunk-b",
+      ls_attribution_identifier: "Beta Owner",
+    });
   });
 
   // Catches the same gap on the other route: a killed agent's run is never posted open,

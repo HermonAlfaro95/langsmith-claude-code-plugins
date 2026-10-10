@@ -38,6 +38,7 @@ import {
 import { importLegacyQueueEntries, listLegacySessionRoutes } from "../legacy-import.js";
 import type { Config } from "../config.js";
 import type { ClaudeTracingEngineContext } from "../models/tracing-engine.js";
+import type { TurnRecord } from "../types.js";
 
 function flusherClient(config: Config): Client {
   const anonymizer = config.redact
@@ -60,17 +61,26 @@ async function settleTurns(
   client: Client,
   watch: UploadWatch,
 ): Promise<void> {
-  for (const path of listTurnRecords(recordDir)) {
-    const record = readTurnRecord(path);
-    if (!record) continue;
+  const records = listTurnRecords(recordDir)
+    .map(readTurnRecord)
+    .filter((record): record is TurnRecord => record !== undefined);
+  const now = Date.now();
+  for (const record of records) {
     if (record.origin !== origin) {
-      debug(`Leaving ${path} alone: it was traced for a different LangSmith account`);
+      debug(`Leaving ${record.path} alone: it was traced for a different LangSmith account`);
       continue;
     }
     try {
-      await reconcileAndClear({ record, client, replicas: config.replicas, watch });
+      await reconcileAndClear({
+        record,
+        relatedRecords: records,
+        client,
+        replicas: config.replicas,
+        watch,
+        now,
+      });
     } catch (err) {
-      warn(`Could not settle the repository on ${path}: ${err}`);
+      warn(`Could not settle the repository on ${record.path}: ${err}`);
     }
   }
   discardDirIfEmpty(recordDir);

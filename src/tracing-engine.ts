@@ -22,6 +22,7 @@ import {
   CLAUDE_RUN_SNAPSHOT_EVENT_SUFFIX,
   CLAUDE_RUN_SNAPSHOT_SOURCE_SEPARATOR,
   CLAUDE_SETTLEMENT_EVENT_KIND,
+  CLAUDE_RECONSTRUCTION_DEFERRED_REASON,
   CLAUDE_TOOL_RECONSTRUCTION_EVENT_SUFFIX,
   CLAUDE_TOOL_SNAPSHOT_EVENT_SUFFIX,
   REPOSITORY_NAME_KEY,
@@ -48,6 +49,7 @@ import { metadataAfterFill, turnAttributionFromOrderedChildren } from "./reconci
 import { loadConfig } from "./config.js";
 import { legacyRouteForSession } from "./legacy-import.js";
 import type {
+  ClaudeAgentLaunchMatch,
   ClaudeRunReconstructionContext,
   ClaudeToolReconstructionInput,
   ClaudeTracingEngineContext,
@@ -425,6 +427,7 @@ export async function acknowledgeClaudeSharedDeliveries(
   const paths = listTurnRecords(recordDirectory);
   if (paths.length === 0) return;
   const captures = await context.captureStore.enumerate(CLAUDE_CODE_INTEGRATION, sessionId);
+  let wakeNeeded = false;
   for (const path of paths) {
     const turn = readTurnRecord(path);
     if (!turn || turn.origin !== origin) continue;
@@ -492,10 +495,17 @@ export async function acknowledgeClaudeSharedDeliveries(
               (outcome) => outcome.status === "settled" && outcome.receipt.outcome === "delivered",
             )
           ) {
-            recordDelivered(turn.path, run.run_id, origin);
+            wakeNeeded = recordDelivered(turn.path, run.run_id, origin) || wakeNeeded;
           }
         }
       }
+    }
+  }
+  if (wakeNeeded) {
+    try {
+      await context.session.wake();
+    } catch (err) {
+      warn(`Could not wake the shared reconstruction worker after child receipts: ${err}`);
     }
   }
 }
@@ -642,7 +652,7 @@ async function reconstructClaudeTool(job: ReconstructionJob): Promise<Reconstruc
   };
 }
 
-function reconstructClaudeRun(
+export function reconstructClaudeRun(
   job: ReconstructionJob,
   context: ClaudeRunReconstructionContext,
 ): ReconstructionResult {
@@ -679,7 +689,20 @@ function reconstructClaudeRun(
   ) {
     throw new Error("Claude native turn record is missing or invalid");
   }
-  const attribution = turnAttributionWithToolOrigins(turn);
+  const launch = findAgentLaunchRecord(turn, run, nativeTurnRecordRunId, context);
+  if (
+    launch &&
+    launch.children.some((child) => child.run_id !== run.id && !launch.delivered.has(child.run_id))
+  ) {
+    return { status: "deferred", reason: CLAUDE_RECONSTRUCTION_DEFERRED_REASON };
+  }
+  const currentAttribution = turnAttributionWithToolOrigins(turn);
+  const attribution =
+    (typeof currentAttribution?.[REPOSITORY_NAME_KEY] === "string"
+      ? currentAttribution
+      : undefined) ??
+    (launch && turnAttributionWithToolOrigins(launch)) ??
+    currentAttribution;
   const sourceMetadata = buildCodingAgentMetadata(source.metadata);
   const recorded: RecordedRun = {
     run_id: run.id,
@@ -719,6 +742,68 @@ function reconstructClaudeRun(
       },
     ],
   };
+}
+
+function findAgentLaunchRecord(
+  turn: TurnRecord,
+  run: NormalizedRunSnapshot,
+  nativeTurnRecordRunId: string,
+  context: ClaudeRunReconstructionContext,
+): TurnRecord | undefined {
+  const root = turn.root;
+  if (
+    root?.run_id !== nativeTurnRecordRunId ||
+    root.shared !== true ||
+    root.parent_run_id === undefined ||
+    run.parent_run_id !== nativeTurnRecordRunId
+  ) {
+    return undefined;
+  }
+  const matchingAgent = (candidate: TurnRecord | undefined): ClaudeAgentLaunchMatch | undefined => {
+    const launchRoot = candidate?.root;
+    if (
+      !candidate ||
+      !launchRoot ||
+      candidate.path === turn.path ||
+      candidate.origin !== context.recordOrigin ||
+      launchRoot.shared !== true ||
+      launchRoot.trace_id !== root.trace_id
+    ) {
+      return undefined;
+    }
+    const child = candidate.children.find(
+      (run) =>
+        run.shared === true &&
+        run.name === "Agent" &&
+        run.run_type === "tool" &&
+        run.parent_run_id === launchRoot.run_id &&
+        run.trace_id === launchRoot.trace_id &&
+        root.dotted_order.startsWith(`${run.dotted_order}.`),
+    );
+    return child ? { turn: candidate, child } : undefined;
+  };
+  const traceRoot = readTurnRecord(
+    turnRecordPath(context.stateFilePath, context.sessionId, root.trace_id),
+  );
+  const traceRootLaunch = matchingAgent(traceRoot);
+  if (traceRootLaunch?.child.run_id === root.parent_run_id) return traceRootLaunch.turn;
+  const candidates = [
+    traceRoot,
+    ...listTurnRecords(turnRecordDir(context.stateFilePath, context.sessionId))
+      .filter((path) => path !== traceRoot?.path)
+      .map(readTurnRecord),
+  ];
+  const matches = candidates
+    .map(matchingAgent)
+    .filter((match): match is ClaudeAgentLaunchMatch => match !== undefined)
+    .sort((left, right) => right.child.dotted_order.length - left.child.dotted_order.length);
+  if (
+    matches.length > 1 &&
+    matches[0]!.child.dotted_order.length === matches[1]!.child.dotted_order.length
+  ) {
+    return undefined;
+  }
+  return matches[0]?.turn;
 }
 
 export function turnAttributionWithToolOrigins(

@@ -1,12 +1,104 @@
-import { mkdtempSync } from "node:fs";
+import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
-import { metadataAfterFill, reconcileTurn, turnAttribution } from "./reconcile.js";
+import {
+  metadataAfterFill,
+  reconcileAndClear,
+  reconcileTurn,
+  turnAttribution,
+} from "./reconcile.js";
 import { inAlpha, inBeta, record, recorded } from "./fixtures/turn-record-sandbox.js";
+import {
+  recordDelivered,
+  recordRun,
+  recordTurnClosed,
+  readTurnRecord,
+  turnRecordPath,
+} from "./turn-record.js";
 
 const bare = { cwd: "/somewhere", thread_id: "s1" };
+
+function pendingLaunchRecords(startTime = new Date().toISOString()) {
+  const stateFilePath = join(mkdtempSync(join(tmpdir(), "claude-pending-records-")), "state.json");
+  const sessionId = "session";
+  const origin = "account";
+  const launchRunId = "launch";
+  const agentRunId = "agent";
+  const notificationRunId = "notification";
+  const modelRunId = "model";
+  const launchPath = turnRecordPath(stateFilePath, sessionId, launchRunId);
+  const notificationPath = turnRecordPath(stateFilePath, sessionId, notificationRunId);
+  recordRun({
+    path: launchPath,
+    run: {
+      id: launchRunId,
+      name: "Claude Code Turn",
+      run_type: "chain",
+      start_time: startTime,
+      trace_id: launchRunId,
+      dotted_order: "launch.root",
+      extra: { metadata: {} },
+    },
+    tracing: "full",
+    origin,
+    root: true,
+    shared: true,
+  });
+  recordRun({
+    path: launchPath,
+    run: {
+      id: agentRunId,
+      name: "Agent",
+      run_type: "tool",
+      start_time: startTime,
+      parent_run_id: launchRunId,
+      trace_id: launchRunId,
+      dotted_order: "launch.root.agent",
+      extra: { metadata: {} },
+    },
+    tracing: "full",
+    origin,
+    shared: true,
+  });
+  recordDelivered(launchPath, agentRunId, origin);
+  recordTurnClosed(launchPath, "launch-turn");
+  recordRun({
+    path: notificationPath,
+    run: {
+      id: notificationRunId,
+      name: "Claude Code Turn",
+      run_type: "chain",
+      start_time: startTime,
+      parent_run_id: agentRunId,
+      trace_id: launchRunId,
+      dotted_order: "launch.root.agent.notification",
+      extra: { metadata: {} },
+    },
+    tracing: "full",
+    origin,
+    root: true,
+    shared: true,
+  });
+  recordRun({
+    path: notificationPath,
+    run: {
+      id: modelRunId,
+      name: "Claude",
+      run_type: "llm",
+      start_time: startTime,
+      parent_run_id: notificationRunId,
+      trace_id: launchRunId,
+      dotted_order: "launch.root.agent.notification.model",
+      extra: { metadata: {} },
+    },
+    tracing: "full",
+    origin,
+    shared: true,
+  });
+  return { launchPath, notificationPath, modelRunId, origin };
+}
 
 describe("what a turn settles on", () => {
   // Catches a reconcile that ignores the repository the session already configured and
@@ -147,5 +239,57 @@ describe("letting go of a turn", () => {
     const live = record(bare, [], { closed: false });
 
     await expect(reconcileTurn({ record: live, ...nothingUploads })).resolves.toBe(false);
+  });
+
+  it("keeps a launch record until its descendant model receipt arrives", async () => {
+    const { launchPath, notificationPath, modelRunId, origin } = pendingLaunchRecords();
+    const settle = (path: string) => readTurnRecord(path)!;
+
+    await reconcileAndClear({
+      record: settle(launchPath),
+      relatedRecords: [settle(launchPath), settle(notificationPath)],
+      ...nothingUploads,
+    });
+    expect(existsSync(launchPath)).toBe(true);
+
+    recordDelivered(notificationPath, modelRunId, origin);
+    await reconcileAndClear({
+      record: settle(launchPath),
+      relatedRecords: [settle(launchPath), settle(notificationPath)],
+      ...nothingUploads,
+    });
+    expect(existsSync(launchPath)).toBe(false);
+  });
+
+  it.each(["a foreign account", "a different trace", "a metadata-only model", "an unshared model"])(
+    "does not keep a launch for %s",
+    async (caseName) => {
+      const { launchPath, notificationPath } = pendingLaunchRecords();
+      const launch = readTurnRecord(launchPath)!;
+      const notification = readTurnRecord(notificationPath)!;
+      if (caseName === "a foreign account") notification.origin = "other-account";
+      if (caseName === "a different trace") notification.root!.trace_id = "other-trace";
+      if (caseName === "a metadata-only model") notification.children[0]!.tracing = "metadata";
+      if (caseName === "an unshared model") notification.children[0]!.shared = false;
+
+      await reconcileAndClear({
+        record: launch,
+        relatedRecords: [launch, notification],
+        ...nothingUploads,
+      });
+      expect(existsSync(launchPath)).toBe(false);
+    },
+  );
+
+  it("lets a launch record age out with a pending descendant model", async () => {
+    const oldStartTime = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
+    const { launchPath, notificationPath } = pendingLaunchRecords(oldStartTime);
+
+    await reconcileAndClear({
+      record: readTurnRecord(launchPath)!,
+      relatedRecords: [readTurnRecord(launchPath)!, readTurnRecord(notificationPath)!],
+      ...nothingUploads,
+    });
+    expect(existsSync(launchPath)).toBe(false);
   });
 });

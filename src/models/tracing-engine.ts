@@ -4,7 +4,7 @@ import type { LifecycleCaptureInput } from "@langchain/plugins-base/tracing/life
 import type { UploadDestination } from "@langchain/plugins-base/tracing/upload";
 import type { NormalizedRunSnapshot } from "@langchain/plugins-base/tracing/upload";
 import type { ReconstructionTurnEvidence } from "@langchain/plugins-base/tracing/reconstruction";
-import type { ToolOrigin, TracingMode } from "../types.js";
+import type { RecordedRun, ToolOrigin, TracingMode, TurnRecord } from "../types.js";
 
 export interface ClaudeToolMetadataSnapshot {
   turnNumber?: number;
@@ -39,6 +39,11 @@ export interface ClaudeRunReconstructionContext {
   recordOrigin: string;
   sessionId: string;
   stateFilePath: string;
+}
+
+export interface ClaudeAgentLaunchMatch {
+  turn: TurnRecord;
+  child: RecordedRun;
 }
 
 export interface ClaudeTracingEngineContext {
