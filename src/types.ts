@@ -17,6 +17,10 @@ export type TracingMode = "full" | "metadata";
 
 export type HookEventName = (typeof HOOK_EVENT_NAMES)[number];
 
+export interface TracingPolicy {
+  threads: Record<string, TracingMode>;
+}
+
 // ─── Hook Input Types ───────────────────────────────────────────────────────
 
 /** The one field the harness check reads, since every other field varies by event and by harness. */
@@ -597,4 +601,25 @@ export interface UserPromptSubmitHookInput {
   prompt: string;
   agent_id?: string;
   agent_type?: string;
+}
+
+export interface StatePatchOperation {
+  path: string[];
+  set?: unknown;
+  unset?: boolean;
+  add?: unknown[];
+  remove?: unknown[];
+}
+
+export interface StatePatchEntry {
+  session: string;
+  removed?: boolean;
+  operations?: StatePatchOperation[];
+}
+
+export type StatePatch = StatePatchEntry[];
+
+export interface PendingStatePatches {
+  files: string[];
+  patches: StatePatch[];
 }
