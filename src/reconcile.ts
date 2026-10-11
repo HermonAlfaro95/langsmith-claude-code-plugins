@@ -150,15 +150,19 @@ function tooOldToUpload(record: TurnRecord, now: number): boolean {
   return Number.isFinite(started) && now - started >= QUEUE_RUN_MAX_AGE_MS;
 }
 
-export function hasPendingDescendantSharedLlm(
-  record: TurnRecord,
-  relatedRecords: readonly TurnRecord[],
-  now: number = Date.now(),
-): boolean {
+function retainAgentLaunch(record: TurnRecord, now: number): boolean {
   const root = record.root;
-  if (!root || root.shared !== true || root.tracing !== "full" || tooOldToUpload(record, now))
+  const started = new Date(root?.start_time ?? "").getTime();
+  if (
+    !root ||
+    root.shared !== true ||
+    root.tracing !== "full" ||
+    !Number.isFinite(started) ||
+    started > now ||
+    now - started >= QUEUE_RUN_MAX_AGE_MS
+  )
     return false;
-  const agents = record.children.filter(
+  return record.children.some(
     (child) =>
       child.shared === true &&
       child.tracing === "full" &&
@@ -167,25 +171,6 @@ export function hasPendingDescendantSharedLlm(
       child.parent_run_id === root.run_id &&
       child.trace_id === root.trace_id,
   );
-  if (agents.length === 0) return false;
-  return relatedRecords.some((candidate) => {
-    const candidateRoot = candidate.root;
-    return (
-      candidate.path !== record.path &&
-      candidate.origin === record.origin &&
-      candidateRoot?.shared === true &&
-      candidateRoot.tracing === "full" &&
-      candidateRoot.trace_id === root.trace_id &&
-      agents.some((agent) => candidateRoot.dotted_order.startsWith(`${agent.dotted_order}.`)) &&
-      candidate.children.some(
-        (child) =>
-          child.shared === true &&
-          child.tracing === "full" &&
-          child.run_type === "llm" &&
-          !candidate.delivered.has(child.run_id),
-      )
-    );
-  });
 }
 
 export async function reconcileTurn(options: {
@@ -234,7 +219,6 @@ export async function reconcileTurn(options: {
 
 export async function reconcileAndClear(options: {
   record: TurnRecord;
-  relatedRecords?: readonly TurnRecord[];
   client: Client;
   replicas: RunTreeConfig["replicas"];
   watch: UploadWatch;
@@ -242,7 +226,7 @@ export async function reconcileAndClear(options: {
 }): Promise<void> {
   if (
     (await reconcileTurn(options)) &&
-    !hasPendingDescendantSharedLlm(options.record, options.relatedRecords ?? [], options.now)
+    !retainAgentLaunch(options.record, options.now ?? Date.now())
   ) {
     discardTurnRecord(options.record.path);
   }

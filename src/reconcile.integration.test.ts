@@ -697,6 +697,13 @@ describe("settling a turn's repository and author", { timeout: 120_000 }, () => 
     appendReply(base, 2);
     await stop(base);
 
+    expect(
+      await waitFor(() =>
+        service.created.some(
+          (run) => run.name === "Agent" && run.extra?.metadata?.thread_id === base.session_id,
+        ),
+      ),
+    ).toBe(true);
     const agentRunId = service.created.find((run) => run.name === "Agent")?.id;
     expect(agentRunId).toBeDefined();
     expect(await waitFor(() => service.updated.some((run) => run.id === agentRunId))).toBe(true);
@@ -738,6 +745,16 @@ describe("settling a turn's repository and author", { timeout: 120_000 }, () => 
     appendReply(base, 2);
     await stop(base);
 
+    expect(
+      await waitFor(() =>
+        service.created.some(
+          (run) =>
+            run.name === "Claude Code Turn" &&
+            run.extra?.metadata?.thread_id === base.session_id &&
+            run.extra?.metadata?.turn_number === 2,
+        ),
+      ),
+    ).toBe(true);
     const attributed = {
       repository_name: "acme/a",
       git_branch: "trunk-a",

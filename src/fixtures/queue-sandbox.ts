@@ -14,9 +14,10 @@ import {
   rmSync,
   utimesSync,
   writeFileSync,
+  type Dirent,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { afterEach, beforeEach, expect } from "vitest";
 import { waitFor } from "./wait-for.js";
 
@@ -31,6 +32,13 @@ import { generateDottedOrderSegment } from "../langsmith.js";
 import { queueOrigin } from "../queue.js";
 import { recordRun, turnRecordPath } from "../turn-record.js";
 import { fakeLangSmith, readLog, spawnHook, turnLines } from "./hook-sandbox.js";
+import {
+  SHARED_ENGINE_WAKE_LAUNCHING_FILENAME,
+  FILE_LOCK_CLAIM_PID_FIELD,
+  QUEUE_FLUSHER_STARTED_PID_PATTERN,
+  QUEUE_SANDBOX_FILE_LOCK_CLAIM_DIRECTORY_SUFFIX,
+  QUEUE_SANDBOX_FILE_LOCK_CLAIM_EXTENSION,
+} from "./queue-sandbox-constants.js";
 
 let home: string;
 
@@ -120,10 +128,48 @@ export function useQueueSandbox(): void {
 }
 
 export function waitForUploaders(): Promise<boolean> {
-  const pids = [
-    ...readLog(join(home, "hook.log")).matchAll(/Started detached queue flusher \(pid (\d+)\)/g),
-  ].map((match) => Number(match[1]));
-  return waitFor(() => pids.every((pid) => !processIsRunning(pid)));
+  return waitFor(() => {
+    const pids = uploadProcessIds();
+    return pids !== undefined && [...pids].every((pid) => !processIsRunning(pid));
+  });
+}
+
+export function uploadProcessIds(): Set<number> | undefined {
+  const pids = new Set<number>(
+    [...readLog(join(home, "hook.log")).matchAll(QUEUE_FLUSHER_STARTED_PID_PATTERN)].map((match) =>
+      Number(match[1]),
+    ),
+  );
+  for (const path of sandboxFiles()) {
+    const name = basename(path);
+    const parentName = basename(dirname(path));
+    if (
+      !(
+        (parentName.endsWith(QUEUE_SANDBOX_FILE_LOCK_CLAIM_DIRECTORY_SUFFIX) &&
+          name.endsWith(QUEUE_SANDBOX_FILE_LOCK_CLAIM_EXTENSION)) ||
+        name === SHARED_ENGINE_WAKE_LAUNCHING_FILENAME
+      )
+    )
+      continue;
+    const pid = processIdFromFile(path);
+    if (pid === null) return undefined;
+    if (pid !== undefined) pids.add(pid);
+  }
+  return pids;
+}
+
+function processIdFromFile(path: string): number | null | undefined {
+  if (!existsSync(path)) return undefined;
+  const contents = readSandboxFile(path);
+  if (!contents) return null;
+  let record: Record<string, unknown>;
+  try {
+    record = JSON.parse(contents) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+  const pid = record[FILE_LOCK_CLAIM_PID_FIELD];
+  return typeof pid === "number" && Number.isSafeInteger(pid) && pid > 0 ? pid : null;
 }
 
 function processIsRunning(pid: number): boolean {
@@ -258,7 +304,14 @@ export function sandboxFiles(): string[] {
   while (pending.length > 0) {
     const directory = pending.pop();
     if (!directory) continue;
-    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    let entries: Dirent[];
+    try {
+      entries = readdirSync(directory, { withFileTypes: true });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
+      throw error;
+    }
+    for (const entry of entries) {
       const path = join(directory, entry.name);
       if (entry.isDirectory()) pending.push(path);
       else files.push(path);

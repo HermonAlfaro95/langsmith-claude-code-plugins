@@ -15237,17 +15237,12 @@ function tooOldToUpload(record, now) {
   const started = new Date(record.root?.start_time ?? "").getTime();
   return Number.isFinite(started) && now - started >= QUEUE_RUN_MAX_AGE_MS;
 }
-function hasPendingDescendantSharedLlm(record, relatedRecords, now = Date.now()) {
+function retainAgentLaunch(record, now) {
   const root = record.root;
-  if (!root || root.shared !== true || root.tracing !== "full" || tooOldToUpload(record, now))
+  const started = new Date(root?.start_time ?? "").getTime();
+  if (!root || root.shared !== true || root.tracing !== "full" || !Number.isFinite(started) || started > now || now - started >= QUEUE_RUN_MAX_AGE_MS)
     return false;
-  const agents = record.children.filter((child) => child.shared === true && child.tracing === "full" && child.name === "Agent" && child.run_type === "tool" && child.parent_run_id === root.run_id && child.trace_id === root.trace_id);
-  if (agents.length === 0)
-    return false;
-  return relatedRecords.some((candidate) => {
-    const candidateRoot = candidate.root;
-    return candidate.path !== record.path && candidate.origin === record.origin && candidateRoot?.shared === true && candidateRoot.tracing === "full" && candidateRoot.trace_id === root.trace_id && agents.some((agent) => candidateRoot.dotted_order.startsWith(`${agent.dotted_order}.`)) && candidate.children.some((child) => child.shared === true && child.tracing === "full" && child.run_type === "llm" && !candidate.delivered.has(child.run_id));
-  });
+  return record.children.some((child) => child.shared === true && child.tracing === "full" && child.name === "Agent" && child.run_type === "tool" && child.parent_run_id === root.run_id && child.trace_id === root.trace_id);
 }
 async function reconcileTurn(options) {
   const { record, client: client2, replicas: replicas2, watch } = options;
@@ -15285,7 +15280,7 @@ async function reconcileTurn(options) {
   return settled;
 }
 async function reconcileAndClear(options) {
-  if (await reconcileTurn(options) && !hasPendingDescendantSharedLlm(options.record, options.relatedRecords ?? [], options.now)) {
+  if (await reconcileTurn(options) && !retainAgentLaunch(options.record, options.now ?? Date.now())) {
     discardTurnRecord(options.record.path);
   }
 }
@@ -22227,24 +22222,23 @@ function flusherClient(config) {
   });
 }
 async function settleTurns(recordDir, config, origin, client2, watch) {
-  const records = listTurnRecords(recordDir).map(readTurnRecord).filter((record) => record !== void 0);
-  const now = Date.now();
-  for (const record of records) {
+  for (const path3 of listTurnRecords(recordDir)) {
+    const record = readTurnRecord(path3);
+    if (!record)
+      continue;
     if (record.origin !== origin) {
-      debug(`Leaving ${record.path} alone: it was traced for a different LangSmith account`);
+      debug(`Leaving ${path3} alone: it was traced for a different LangSmith account`);
       continue;
     }
     try {
       await reconcileAndClear({
         record,
-        relatedRecords: records,
         client: client2,
         replicas: config.replicas,
-        watch,
-        now
+        watch
       });
     } catch (err) {
-      warn(`Could not settle the repository on ${record.path}: ${err}`);
+      warn(`Could not settle the repository on ${path3}: ${err}`);
     }
   }
   discardDirIfEmpty(recordDir);

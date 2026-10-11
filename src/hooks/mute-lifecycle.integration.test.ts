@@ -243,7 +243,11 @@ const HOOK_EVENT_BY_NAME = {
   failure: "StopFailure",
   end: "SessionEnd",
 } satisfies Record<string, HookEventName>;
-async function hook(name: keyof typeof HOOK_EVENT_BY_NAME, extra: Record<string, unknown> = {}) {
+async function hook(
+  name: keyof typeof HOOK_EVENT_BY_NAME,
+  extra: Record<string, unknown> = {},
+  drain = true,
+) {
   h.input = {
     session_id: "session",
     cwd: "/repo",
@@ -275,7 +279,7 @@ async function hook(name: keyof typeof HOOK_EVENT_BY_NAME, extra: Record<string,
     h.operations.push({ action: "post", config: entry.run as Record<string, any> });
     removeQueued(queued, entry.queue_id);
   }
-  await drainSharedEngine();
+  if (drain) await drainSharedEngine();
 }
 
 async function drainSharedEngine() {
@@ -599,36 +603,55 @@ describe("tool privacy snapshot reclamation", () => {
 
   it("keeps metadata-mode source snapshots private and out of lifecycle delivery", async () => {
     reset("metadata");
-    await hook("prompt");
-    await hook("post");
+    const cwd = mkdtempSync(join(tmpdir(), "metadata-privacy-"));
+    const path = join(cwd, "secret.txt");
+    writeFileSync(path, privateText);
+    try {
+      await hook("prompt", { cwd });
+      await hook(
+        "post",
+        {
+          cwd,
+          tool_name: "Read",
+          tool_use_id: "private-path",
+          tool_input: { file_path: path },
+          tool_response: { content: privateText },
+        },
+        false,
+      );
 
-    const context = await sharedEngineContext();
-    expect(context).toBeDefined();
-    const sources = await createCaptureStore(
-      join(context!.storageRoot, "reconstruction-v1"),
-    ).enumerate(CLAUDE_CODE_INTEGRATION, "session");
-    const snapshots = sources.filter(({ record }) =>
-      record.eventId.endsWith(CLAUDE_TOOL_RECONSTRUCTION_EVENT_SUFFIX),
-    );
-    expect(snapshots).toHaveLength(1);
-    expect(JSON.stringify(snapshots[0]!.record.normalizedPayload)).not.toContain(privateText);
-    expect(snapshots[0]!.record.normalizedPayload).toMatchObject({
-      privacyMode: "metadata",
-      sourceSnapshots: [{ attributionContext: { toolOrigin: { namedAPath: false } } }],
-    });
-    expect(snapshots[0]!.record.normalizedPayload).not.toHaveProperty(
-      "sourceSnapshots.0.attributionContext.toolOrigin.path",
-    );
-    expect(snapshots[0]!.record.normalizedPayload).not.toHaveProperty(
-      "sourceSnapshots.0.attributionContext.toolOrigin.cwd",
-    );
-
-    const delivered = await context!.captureStore.enumerate(CLAUDE_CODE_INTEGRATION, "session");
-    expect(
-      delivered.some(({ record }) =>
+      const context = await sharedEngineContext();
+      expect(context).toBeDefined();
+      const sources = await createCaptureStore(
+        join(context!.storageRoot, "reconstruction-v1"),
+      ).enumerate(CLAUDE_CODE_INTEGRATION, "session");
+      const snapshots = sources.filter(({ record }) =>
         record.eventId.endsWith(CLAUDE_TOOL_RECONSTRUCTION_EVENT_SUFFIX),
-      ),
-    ).toBe(false);
+      );
+      expect(snapshots).toHaveLength(1);
+      expect(JSON.stringify(snapshots[0]!.record.normalizedPayload)).not.toContain(privateText);
+      expect(snapshots[0]!.record.normalizedPayload).toMatchObject({
+        privacyMode: "metadata",
+        sourceSnapshots: [{ attributionContext: { toolOrigin: { namedAPath: false } } }],
+      });
+      expect(snapshots[0]!.record.normalizedPayload).not.toHaveProperty(
+        "sourceSnapshots.0.attributionContext.toolOrigin.path",
+      );
+      expect(snapshots[0]!.record.normalizedPayload).not.toHaveProperty(
+        "sourceSnapshots.0.attributionContext.toolOrigin.cwd",
+      );
+
+      await drainSharedEngine();
+      const delivered = await context!.captureStore.enumerate(CLAUDE_CODE_INTEGRATION, "session");
+      expect(
+        delivered.some(({ record }) =>
+          record.eventId.endsWith(CLAUDE_TOOL_RECONSTRUCTION_EVENT_SUFFIX),
+        ),
+      ).toBe(false);
+    } finally {
+      rmSync(path, { force: true });
+      rmdirSync(cwd);
+    }
   });
 
   it.each(["Bash", "Agent", "Workflow"])(

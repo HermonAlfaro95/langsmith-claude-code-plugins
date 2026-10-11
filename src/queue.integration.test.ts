@@ -2,6 +2,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { existsSync, statSync, writeFileSync } from "node:fs";
 import { join, sep } from "node:path";
 import { describe, expect, it } from "vitest";
+import { tryAcquireFileLock } from "@langchain/plugins-base/storage";
 
 import {
   ageOldestRecord,
@@ -21,6 +22,7 @@ import {
   startTurn,
   stopTurn,
   toolCall,
+  uploadProcessIds,
   uploads,
   useQueueSandbox,
   waitFor,
@@ -38,6 +40,16 @@ function savedRun(name: string): boolean {
 
 describe("the detached upload queue", { timeout: 60_000 }, () => {
   useQueueSandbox();
+
+  it("observes a PID from a real shared file-lock claim", async () => {
+    const lock = await tryAcquireFileLock(join(sandboxHome(), "wake.lock"));
+    expect(lock).toBeDefined();
+    try {
+      expect(uploadProcessIds()).toContain(process.pid);
+    } finally {
+      await lock?.release();
+    }
+  });
 
   // Catches a PostToolUse that uploads inline or a saved run that never reaches LangSmith.
   it("uploads a run the tool hook captured without waiting on the network", async () => {
