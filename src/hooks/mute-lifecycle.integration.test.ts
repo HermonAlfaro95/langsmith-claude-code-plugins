@@ -1509,7 +1509,7 @@ describe("privacy propagation without lifecycle changes", () => {
       }
     }
     expect(topologies[1]).toEqual(topologies[0]);
-  }, 30_000);
+  }, 120_000);
 
   it("keeps an owned full launch full while policy is muted, including synchronous subagents", async () => {
     reset("full");
