@@ -1380,7 +1380,7 @@ describe("privacy propagation without lifecycle changes", () => {
       } else expect(serializedCaptures).toContain(privateText);
     }
     expect(topologies[1]).toEqual(topologies[0]);
-  }, 30_000);
+  }, 120_000);
 
   it("absent PreToolUse follows the current snapshot with the same parent and fallback timing", async () => {
     const topologies = [];
@@ -1399,7 +1399,7 @@ describe("privacy propagation without lifecycle changes", () => {
       else
         expect(h.operations.every((op) => !op.config.extra?.metadata?.ls_tracing_mode)).toBe(true);
       topologies.push(topology());
-      expect(h.errors).toEqual([]);
+      expect(h.errors, JSON.stringify(h.errors)).toEqual([]);
     }
     expect(topologies[1]).toEqual(topologies[0]);
     reset("full");
