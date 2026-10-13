@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
-vi.mock("node:child_process", () => ({ execSync: vi.fn(() => "") }));
+vi.mock("node:child_process", () => ({ execFileSync: vi.fn(() => "") }));
 vi.mock("./utils/stdin.js", () => ({ readStdin: vi.fn() }));
 vi.mock("./langsmith.js", { spy: true });
 

@@ -39,6 +39,9 @@ vi.mock("langsmith", () => ({
     async patchRun() {
       h.operations.push({ action: "patch", config: JSON.parse(JSON.stringify(this.config)) });
     }
+    createChild() {}
+    end() {}
+    toJSON() {}
   },
 }));
 vi.mock("../utils/stdin.js", () => ({ readStdin: async () => h.input }));

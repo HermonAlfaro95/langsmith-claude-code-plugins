@@ -52,6 +52,9 @@ vi.mock("langsmith", async (importOriginal) => {
         this.client.updateRun(this.params.id, this.params);
       }
     }
+    createChild() {}
+    end() {}
+    toJSON() {}
   }
 
   return {

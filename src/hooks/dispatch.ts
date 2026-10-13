@@ -7,8 +7,8 @@
  */
 
 import { binary } from "../binary-target.js";
-import { LS_INTEGRATION_VERSION } from "../config.js";
 import { FLUSH_QUEUE_ARG, HOOK_EVENT_NAMES } from "../constants.js";
+import { LS_INTEGRATION_VERSION } from "../integration-version.js";
 import { error, initLogger } from "../logger.js";
 import { runHookEntry } from "../utils/hook-entry.js";
 import { main as flushQueue } from "./flush-queue.js";
