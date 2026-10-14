@@ -20995,6 +20995,24 @@ var MAX_FULL_READ_BYTES = 50 * 1024 * 1024;
 var WORKFLOW_TOOL_NAME = "Workflow";
 var WORKFLOW_SUBAGENT_TYPE = "workflow-subagent";
 var KILLED_NOTIFICATION_STATUS = "killed";
+var QUEUE_DIR_NAME = "langsmith_queue";
+var QUEUE_ORIGIN_LENGTH = 12;
+var TURN_RECORD_DIR_NAME = "langsmith_turns";
+var TURN_RECORD_LINE = {
+  run: "run",
+  closed: "closed",
+  delivered: "ok",
+  reconciled: "fixed"
+};
+var LEGACY_MAX_AGE_MS = 6 * 60 * 60 * 1e3;
+var LEGACY_SWEEP_WARNING = "file(s) the previous version left unreadable or half written, since after 6 hours they can never be uploaded";
+var LEGACY_EMPTY_FOLDER_IDLE_MS = 2 * 60 * 60 * 1e3;
+var LEGACY_UUID = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
+var LEGACY_QUEUE_ID = `\\d{16}-${LEGACY_UUID}`;
+var LEGACY_QUEUE_FILE = new RegExp(`^${LEGACY_QUEUE_ID}\\.queue\\.json$`);
+var LEGACY_QUEUE_TEMP_FILE = new RegExp(`^${LEGACY_QUEUE_ID}\\.queue\\.json\\.${LEGACY_UUID}\\.queue\\.tmp$`);
+var LEGACY_TURN_FILE = new RegExp(`^${LEGACY_UUID}\\.turn\\.jsonl$`);
+var LEGACY_FLUSH_LOCK_FILE = new RegExp(`^[\\w.-]+\\.flush\\.lock(\\.${LEGACY_UUID}\\.lock\\.staging)?$`);
 
 // dist/src/integration-version.js
 var LS_INTEGRATION_VERSION = true ? "0.4.2" : process.env.CC_LANGSMITH_INTEGRATION_VERSION || void 0;
@@ -21040,6 +21058,88 @@ function debug(message) {
   if (debugEnabled) {
     write("DEBUG", message);
   }
+}
+
+// dist/src/utils/clone.js
+function cloneJson(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+// dist/src/engine-capture.js
+async function saveOrWarn(runId, save, savedDespite) {
+  try {
+    const result = await save();
+    if (!CAPTURE_SAVED_STATUSES.includes(result.status)) {
+      warn(`Could not save run ${runId} for upload: ${result.status}`);
+    }
+  } catch (err) {
+    if (!await savedDespite(err))
+      throw err;
+    warn(`Saved run ${runId} for upload, but its uploader did not start: ${err}`);
+  }
+}
+async function captureInto(context, run, mode, rootRunId, operation) {
+  const { session, sessionId, store, fingerprint: fingerprint2 } = context;
+  const turnRunId = run.id === rootRunId || await posted(context, rootRunId, rootRunId) ? rootRunId : run.id;
+  const afterPost = operation === "patch" && await posted(context, turnRunId, run.id);
+  const input = captureInput(run, mode, turnRunId, operation, sessionId, afterPost);
+  await saveOrWarn(run.id, () => session.capture(input), (err) => readSavedCaptureWake(err, {
+    store,
+    integration: LS_INTEGRATION,
+    sessionId,
+    turnId: turnRunId,
+    eventId: input.eventId,
+    destinationFingerprint: fingerprint2
+  }));
+}
+function captureInput(run, mode, rootRunId, operation, sessionId, afterPost) {
+  return {
+    turnId: rootRunId,
+    eventId: `${RUN_EVENT_PREFIXES[operation]}${run.id}`,
+    submission: runSubmission(run, mode, operation),
+    turnEvidence: runTurnEvidence(run, rootRunId),
+    ...afterPost ? {
+      dependencies: [
+        {
+          integration: LS_INTEGRATION,
+          sessionId,
+          turnId: rootRunId,
+          eventId: `${POST_EVENT_PREFIX}${run.id}`
+        }
+      ]
+    } : {}
+  };
+}
+function runSubmission(run, mode, operation) {
+  const data = cloneJson(run);
+  const pick = (fields) => Object.fromEntries(fields.filter((key) => key in data).map((key) => [key, data[key]]));
+  const status = data.error !== void 0 ? "error" : data.end_time ? "completed" : "running";
+  const base = { integration: LS_INTEGRATION, privacyMode: mode, metadata: data.metadata };
+  return operation === "post" ? {
+    ...base,
+    operation,
+    run: { inputs: {}, ...pick(RUN_SNAPSHOT_FIELDS) }
+  } : {
+    ...base,
+    operation,
+    run: pick(RUN_CONTEXT_FIELDS),
+    privacyContext: { status },
+    patch: {
+      fields: RUN_PATCH_FIELDS.filter((key) => key in data),
+      values: pick(RUN_PATCH_FIELDS)
+    }
+  };
+}
+function runTurnEvidence(run, rootRunId) {
+  return run.id === rootRunId ? { rootRunId, childRunIds: [], closureState: run.end_time ? "authoritative" : "open" } : { childRunIds: attributionReady(run.metadata) ? [] : [run.id], closureState: "open" };
+}
+async function posted(context, turnId, runId) {
+  const scope = { integration: LS_INTEGRATION, sessionId: context.sessionId, turnId };
+  return await context.store.read({ ...scope, eventId: `${POST_EVENT_PREFIX}${runId}` }) !== void 0;
+}
+function attributionReady(metadata) {
+  const built = buildCodingAgentMetadata(metadata);
+  return Boolean(built[REPOSITORY_NAME_KEY2] && built[ATTRIBUTION_IDENTIFIER_KEY2]);
 }
 
 // dist/src/engine-session.js
@@ -21459,11 +21559,6 @@ function loadConfig(options) {
   };
 }
 
-// dist/src/utils/clone.js
-function cloneJson(value) {
-  return JSON.parse(JSON.stringify(value));
-}
-
 // dist/src/engine-writer.js
 function writerOptions(config) {
   const replicas = config.replicas ?? replicasFromEnvironment();
@@ -21484,83 +21579,6 @@ function replicasFromEnvironment() {
 function writerReplica(replica) {
   const source = Array.isArray(replica) ? { projectName: replica[0], updates: replica[1] } : replica;
   return cloneJson(source);
-}
-
-// dist/src/engine-capture.js
-async function saveOrWarn(runId, save, savedDespite) {
-  try {
-    const result = await save();
-    if (!CAPTURE_SAVED_STATUSES.includes(result.status)) {
-      warn(`Could not save run ${runId} for upload: ${result.status}`);
-    }
-  } catch (err) {
-    if (!await savedDespite(err))
-      throw err;
-    warn(`Saved run ${runId} for upload, but its uploader did not start: ${err}`);
-  }
-}
-async function captureInto(context, run, mode, rootRunId, operation) {
-  const { session, sessionId, store, fingerprint: fingerprint2 } = context;
-  const turnRunId = run.id === rootRunId || await posted(context, rootRunId, rootRunId) ? rootRunId : run.id;
-  const afterPost = operation === "patch" && await posted(context, turnRunId, run.id);
-  const input = captureInput(run, mode, turnRunId, operation, sessionId, afterPost);
-  await saveOrWarn(run.id, () => session.capture(input), (err) => readSavedCaptureWake(err, {
-    store,
-    integration: LS_INTEGRATION,
-    sessionId,
-    turnId: turnRunId,
-    eventId: input.eventId,
-    destinationFingerprint: fingerprint2
-  }));
-}
-function captureInput(run, mode, rootRunId, operation, sessionId, afterPost) {
-  return {
-    turnId: rootRunId,
-    eventId: `${RUN_EVENT_PREFIXES[operation]}${run.id}`,
-    submission: runSubmission(run, mode, operation),
-    turnEvidence: runTurnEvidence(run, rootRunId),
-    ...afterPost ? {
-      dependencies: [
-        {
-          integration: LS_INTEGRATION,
-          sessionId,
-          turnId: rootRunId,
-          eventId: `${POST_EVENT_PREFIX}${run.id}`
-        }
-      ]
-    } : {}
-  };
-}
-function runSubmission(run, mode, operation) {
-  const data = cloneJson(run);
-  const pick = (fields) => Object.fromEntries(fields.filter((key) => key in data).map((key) => [key, data[key]]));
-  const status = data.error !== void 0 ? "error" : data.end_time ? "completed" : "running";
-  const base = { integration: LS_INTEGRATION, privacyMode: mode, metadata: data.metadata };
-  return operation === "post" ? {
-    ...base,
-    operation,
-    run: { inputs: {}, ...pick(RUN_SNAPSHOT_FIELDS) }
-  } : {
-    ...base,
-    operation,
-    run: pick(RUN_CONTEXT_FIELDS),
-    privacyContext: { status },
-    patch: {
-      fields: RUN_PATCH_FIELDS.filter((key) => key in data),
-      values: pick(RUN_PATCH_FIELDS)
-    }
-  };
-}
-function runTurnEvidence(run, rootRunId) {
-  return run.id === rootRunId ? { rootRunId, childRunIds: [], closureState: run.end_time ? "authoritative" : "open" } : { childRunIds: attributionReady(run.metadata) ? [] : [run.id], closureState: "open" };
-}
-async function posted(context, turnId, runId) {
-  const scope = { integration: LS_INTEGRATION, sessionId: context.sessionId, turnId };
-  return await context.store.read({ ...scope, eventId: `${POST_EVENT_PREFIX}${runId}` }) !== void 0;
-}
-function attributionReady(metadata) {
-  const built = buildCodingAgentMetadata(metadata);
-  return Boolean(built[REPOSITORY_NAME_KEY2] && built[ATTRIBUTION_IDENTIFIER_KEY2]);
 }
 
 // dist/src/repo-attribution.js
@@ -21785,6 +21803,246 @@ function openSession(config, cwd, sessionId, startupWaitMs) {
   return { ...context, destinations: createLangSmithUploadWriter(writer).destinations };
 }
 
+// dist/src/legacy-import.js
+import { createHmac } from "node:crypto";
+import { basename as basename4, dirname as dirname16, join as join20 } from "node:path";
+
+// dist/src/utils/files.js
+import { lstatSync as lstatSync3, readdirSync, readFileSync as readFileSync7, rmdirSync, unlinkSync as unlinkSync3 } from "node:fs";
+function listDirectory(path3) {
+  try {
+    return readdirSync(path3).sort();
+  } catch {
+    return [];
+  }
+}
+function entryInfo(path3) {
+  try {
+    return lstatSync3(path3);
+  } catch {
+    return void 0;
+  }
+}
+function removeFile2(path3) {
+  if (!entryInfo(path3)?.isFile())
+    return false;
+  try {
+    unlinkSync3(path3);
+    return true;
+  } catch {
+    return false;
+  }
+}
+function removeEmptyFolder(path3) {
+  try {
+    rmdirSync(path3);
+  } catch {
+    return;
+  }
+}
+function readText(path3) {
+  try {
+    return readFileSync7(path3, "utf-8");
+  } catch {
+    return "";
+  }
+}
+function readJson(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return void 0;
+  }
+}
+
+// dist/src/legacy-import.js
+function legacyRuns(config) {
+  const origin = legacyOrigin(config);
+  const root = dirname16(config.stateFilePath);
+  const scan = { runs: [], settled: [], unreadable: [] };
+  const { runs } = scan;
+  for (const [sessionId, file] of legacyFiles(join20(root, QUEUE_DIR_NAME), LEGACY_QUEUE_FILE)) {
+    const entry = readJson(readText(file));
+    if (!entry?.run)
+      scan.unreadable.push(file);
+    if (!entry?.run || entry.origin !== origin)
+      continue;
+    const { extra, ...run } = entry.run;
+    const metadata = extra?.metadata ?? {};
+    const base = entry.where && entry.tracing === "full" ? settledRepositoryMetadata(metadata, entry.where) : metadata;
+    runs.push({
+      sessionId,
+      file,
+      mode: entry.tracing,
+      operation: "post",
+      run: { ...run, metadata: legacyOptions(base ?? {}, sessionId, "tool") }
+    });
+  }
+  for (const [sessionId, file] of legacyFiles(join20(root, TURN_RECORD_DIR_NAME), LEGACY_TURN_FILE)) {
+    const record = readTurnRecord(file);
+    if (!record.root || !record.closed || record.origin !== origin)
+      continue;
+    const filled = turnAttribution(record) ?? {};
+    const open3 = record.children.filter((run) => run.open && record.delivered.has(run.run_id));
+    const before = runs.length;
+    for (const run of [record.root, ...open3]) {
+      if (record.fixed.has(run.run_id) || !run.start_time)
+        continue;
+      runs.push({
+        sessionId,
+        file,
+        mode: run.tracing,
+        operation: "patch",
+        run: {
+          id: run.run_id,
+          name: run.name,
+          run_type: run.run_type,
+          start_time: run.start_time,
+          end_time: run.end_time ?? (/* @__PURE__ */ new Date()).toISOString(),
+          parent_run_id: run.parent_run_id,
+          trace_id: run.trace_id,
+          dotted_order: run.dotted_order,
+          metadata: legacyOptions(metadataAfterFill(run, filled) ?? run.metadata, sessionId, run === record.root ? "root" : run.run_type === "llm" ? "llm" : "tool")
+        }
+      });
+    }
+    if (runs.length === before)
+      scan.settled.push(file);
+  }
+  return scan;
+}
+function legacyOrigin(config) {
+  const identity = JSON.stringify([
+    config.apiBaseUrl,
+    config.replicas ?? null,
+    config.redact ?? false,
+    config.redactExtraRules ?? null
+  ]);
+  return createHmac("sha256", config.apiKey).update(identity).digest("hex").slice(0, QUEUE_ORIGIN_LENGTH);
+}
+function legacyOptions(metadata, sessionId, runType) {
+  const legacy = metadata;
+  return {
+    integration: LS_INTEGRATION,
+    threadId: legacy.thread_id ?? sessionId,
+    agentType: legacy.ls_agent_type ?? "root",
+    runType,
+    base: metadata,
+    turnId: legacy.turn_id,
+    turnNumber: legacy.turn_number,
+    runtimeVersion: legacy.ls_agent_runtime_version,
+    integrationVersion: legacy.ls_integration_version,
+    subagentId: legacy.ls_subagent_id,
+    subagentType: legacy.ls_subagent_type,
+    skillName: legacy.ls_skill_name,
+    modelName: legacy.ls_model_name,
+    usageMetadata: legacy.usage_metadata
+  };
+}
+function legacyFiles(root, pattern) {
+  if (!entryInfo(root)?.isDirectory())
+    return [];
+  return listDirectory(root).filter((sessionId) => entryInfo(join20(root, sessionId))?.isDirectory()).flatMap((sessionId) => listDirectory(join20(root, sessionId)).map((name) => [sessionId, join20(root, sessionId, name)]).filter(([, file]) => pattern.test(basename4(file)) && entryInfo(file)?.isFile()));
+}
+function readTurnRecord(path3) {
+  const record = {
+    path: path3,
+    origin: "",
+    children: [],
+    closed: false,
+    delivered: /* @__PURE__ */ new Set(),
+    fixed: /* @__PURE__ */ new Set()
+  };
+  const children = /* @__PURE__ */ new Map();
+  for (const line of readText(path3).split("\n")) {
+    const parsed = readJson(line);
+    if (parsed?.k === TURN_RECORD_LINE.run && typeof parsed.run?.run_id === "string") {
+      if (parsed.root)
+        record.root = parsed.run;
+      else
+        children.set(parsed.run.run_id, parsed.run);
+      if (parsed.origin)
+        record.origin = parsed.origin;
+    } else if (parsed?.k === TURN_RECORD_LINE.closed) {
+      record.closed = true;
+    } else if (parsed?.k === TURN_RECORD_LINE.delivered) {
+      record.delivered.add(parsed.id);
+    } else if (parsed?.k === TURN_RECORD_LINE.reconciled) {
+      record.fixed.add(parsed.id);
+    }
+  }
+  record.children = [...children.values()];
+  return record;
+}
+
+// dist/src/legacy-sweep.js
+import { join as join21, dirname as dirname17 } from "node:path";
+function idleMs(info, now) {
+  return info ? now - info.mtimeMs : 0;
+}
+function removeIfOld(path3, now) {
+  const info = entryInfo(path3);
+  return info?.isFile() === true && idleMs(info, now) >= LEGACY_MAX_AGE_MS && removeFile2(path3);
+}
+function mayAgeOut(name, path3, removable) {
+  if (LEGACY_QUEUE_TEMP_FILE.test(name))
+    return true;
+  return (LEGACY_QUEUE_FILE.test(name) || LEGACY_TURN_FILE.test(name)) && removable.has(path3);
+}
+function sweepSession(path3, removable, now) {
+  const aged = listDirectory(path3).filter((name) => {
+    const entry = join21(path3, name);
+    return mayAgeOut(name, entry, removable) && removeIfOld(entry, now);
+  }).length;
+  if (aged > 0 || idleMs(entryInfo(path3), now) >= LEGACY_EMPTY_FOLDER_IDLE_MS) {
+    removeEmptyFolder(path3);
+  }
+  return aged;
+}
+function sweepFolder(path3, removable, now) {
+  if (!entryInfo(path3)?.isDirectory())
+    return 0;
+  let aged = 0;
+  for (const name of listDirectory(path3)) {
+    const entry = join21(path3, name);
+    if (entryInfo(entry)?.isDirectory())
+      aged += sweepSession(entry, removable, now);
+    else if (LEGACY_FLUSH_LOCK_FILE.test(name))
+      removeIfOld(entry, now);
+  }
+  removeEmptyFolder(path3);
+  return aged;
+}
+function sweepLegacyLeftovers(stateFilePath, removable, now = Date.now()) {
+  const root = dirname17(stateFilePath);
+  return [QUEUE_DIR_NAME, TURN_RECORD_DIR_NAME].reduce((aged, folder) => aged + sweepFolder(join21(root, folder), removable, now), 0);
+}
+
+// dist/src/engine-legacy.js
+async function importLegacyRuns(config, cwd) {
+  const sessions = /* @__PURE__ */ new Map();
+  const failed = /* @__PURE__ */ new Set();
+  const { runs, settled, unreadable } = legacyRuns(config);
+  for (const { sessionId, file, mode, operation, run } of runs) {
+    try {
+      const context = sessions.get(sessionId) ?? openSession(config, cwd, sessionId);
+      sessions.set(sessionId, context);
+      await captureInto(context, run, mode, run.id, operation);
+    } catch (err) {
+      failed.add(file);
+      warn(`Could not move ${file} to the new uploader: ${err}`);
+    }
+  }
+  for (const file of /* @__PURE__ */ new Set([...settled, ...runs.map((legacy) => legacy.file)])) {
+    if (!failed.has(file))
+      removeFile2(file);
+  }
+  const aged = sweepLegacyLeftovers(config.stateFilePath, new Set(unreadable));
+  if (aged > 0) {
+    warn(`Removed ${aged} ${LEGACY_SWEEP_WARNING}`);
+  }
+}
+
 // dist/src/utils/hook-init.js
 function initHook(cwd, options) {
   const config = loadConfig({ cwd, deferGit: options?.deferGit });
@@ -21811,11 +22069,12 @@ async function runEngineWorker(cwd, sessionId) {
   if (WORKER_STOP_STATUSES.includes(result)) {
     warn(`The uploader for ${sessionId} stopped with ${result}`);
   }
+  await importLegacyRuns(config, cwd);
 }
 
 // dist/src/tracing-policy.js
 import { mkdir as mkdir6 } from "node:fs/promises";
-import { dirname as dirname16 } from "node:path";
+import { dirname as dirname18 } from "node:path";
 
 // dist/src/utils/records.js
 function isRecord(value) {
@@ -21863,7 +22122,7 @@ async function setThreadTracingMode(stateFilePath, sessionId, mode) {
     throw new Error("A nonempty session ID and a full/metadata tracing mode are required");
   }
   const path3 = tracingPolicyPath(stateFilePath);
-  await mkdir6(dirname16(path3), { recursive: true });
+  await mkdir6(dirname18(path3), { recursive: true });
   return updatePolicyFile(path3, POLICY_FILE, (policy) => {
     policy.threads = { ...policy.threads, [sessionId]: mode };
   });
@@ -21876,7 +22135,7 @@ function resolveTurnTracingMode(config, sessionId, ...snapshots) {
 }
 
 // dist/src/transcript.js
-import { readFileSync as readFileSync7, statSync as statSync7, fstatSync, openSync as openSync2, readSync, closeSync as closeSync2 } from "node:fs";
+import { readFileSync as readFileSync8, statSync as statSync7, fstatSync, openSync as openSync2, readSync, closeSync as closeSync2 } from "node:fs";
 function readTranscript(filePath, afterLine = -1) {
   let size;
   try {
@@ -21885,7 +22144,7 @@ function readTranscript(filePath, afterLine = -1) {
     return { messages: [], lastLine: afterLine };
   }
   if (size <= MAX_FULL_READ_BYTES) {
-    const raw = readFileSync7(filePath, "utf-8");
+    const raw = readFileSync8(filePath, "utf-8");
     const lines = raw.split("\n").filter((l) => l.trim() !== "");
     const messages = [];
     let lastLine = afterLine;
@@ -21951,7 +22210,7 @@ function getTranscriptEndLine(filePath) {
     if (size === 0)
       return -1;
     if (size <= MAX_FULL_READ_BYTES) {
-      const raw = readFileSync7(filePath, "utf-8");
+      const raw = readFileSync8(filePath, "utf-8");
       const lines = raw.split("\n").filter((l) => l.trim() !== "");
       return lines.length > 0 ? lines.length - 1 : -1;
     }
@@ -22182,7 +22441,7 @@ function groupIntoTurns(messages) {
 }
 
 // dist/src/state.js
-import { readFileSync as readFileSync9 } from "node:fs";
+import { readFileSync as readFileSync10 } from "node:fs";
 
 // dist/src/utils/atomic-file.js
 import { openSync as openSync3, writeSync, closeSync as closeSync3, renameSync as renameSync5 } from "node:fs";
@@ -22225,8 +22484,8 @@ async function releaseStateLock(lock) {
 }
 
 // dist/src/state-pending.js
-import { mkdirSync as mkdirSync6, readdirSync, readFileSync as readFileSync8, rmdirSync, rmSync, statSync as statSync8 } from "node:fs";
-import { join as join20 } from "node:path";
+import { mkdirSync as mkdirSync6, readdirSync as readdirSync2, readFileSync as readFileSync9, rmdirSync as rmdirSync2, rmSync, statSync as statSync8 } from "node:fs";
+import { join as join22 } from "node:path";
 var sequence = 0;
 var same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 function diffValue(path3, before, after, operations) {
@@ -22315,7 +22574,7 @@ function applyPatches(state, patches) {
 var pendingDirectory = (stateFilePath) => `${stateFilePath}${PENDING_STATE_DIR_SUFFIX}`;
 function names(directory) {
   try {
-    return readdirSync(directory);
+    return readdirSync2(directory);
   } catch {
     return [];
   }
@@ -22326,7 +22585,7 @@ function writePending(stateFilePath, patch) {
   const directory = pendingDirectory(stateFilePath);
   const time = String(Date.now()).padStart(PENDING_STATE_TIME_WIDTH, "0");
   const order = String(sequence++).padStart(PENDING_STATE_SEQUENCE_WIDTH, "0");
-  const file = join20(directory, `${time}-${order}-${process.pid}${PENDING_STATE_FILE_SUFFIX}`);
+  const file = join22(directory, `${time}-${order}-${process.pid}${PENDING_STATE_FILE_SUFFIX}`);
   for (let attempt = 1; ; attempt++) {
     try {
       mkdirSync6(directory, { recursive: true, mode: PRIVATE_DIR_MODE });
@@ -22343,10 +22602,10 @@ function readPending(stateFilePath) {
   const files = [];
   const patches = [];
   for (const name of names(directory).filter((n2) => n2.endsWith(PENDING_STATE_FILE_SUFFIX)).sort()) {
-    const file = join20(directory, name);
+    const file = join22(directory, name);
     files.push(file);
     try {
-      patches.push(JSON.parse(readFileSync8(file, "utf-8")));
+      patches.push(JSON.parse(readFileSync9(file, "utf-8")));
     } catch {
       continue;
     }
@@ -22357,7 +22616,7 @@ function hasRecentPending(stateFilePath) {
   const directory = pendingDirectory(stateFilePath);
   return names(directory).some((name) => {
     try {
-      return name.endsWith(PENDING_STATE_FILE_SUFFIX) && Date.now() - statSync8(join20(directory, name)).mtimeMs < STATE_LOCK_BUSY_MEMORY_MS;
+      return name.endsWith(PENDING_STATE_FILE_SUFFIX) && Date.now() - statSync8(join22(directory, name)).mtimeMs < STATE_LOCK_BUSY_MEMORY_MS;
     } catch {
       return false;
     }
@@ -22370,7 +22629,7 @@ function removePending(stateFilePath, files) {
   for (const name of names(directory)) {
     if (name.endsWith(PENDING_STATE_FILE_SUFFIX))
       continue;
-    const file = join20(directory, name);
+    const file = join22(directory, name);
     try {
       if (Date.now() - statSync8(file).mtimeMs > PENDING_STATE_ABANDONED_MS)
         rmSync(file, { force: true });
@@ -22381,7 +22640,7 @@ function removePending(stateFilePath, files) {
   if (names(directory).length > 0)
     return;
   try {
-    rmdirSync(directory);
+    rmdirSync2(directory);
   } catch {
     return;
   }
@@ -22405,7 +22664,7 @@ async function atomicUpdateState(stateFilePath, fn) {
 }
 function readStateFile(stateFilePath) {
   try {
-    const raw = readFileSync9(stateFilePath, "utf-8");
+    const raw = readFileSync10(stateFilePath, "utf-8");
     return JSON.parse(raw);
   } catch {
     return {};
