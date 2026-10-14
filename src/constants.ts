@@ -1,4 +1,4 @@
-import { COMMON_BOOLEAN_SETTINGS } from "./shared-config.js";
+import { COMMON_BOOLEAN_SETTINGS } from "@langchain/plugins-base/settings";
 
 const USER_PROMPT_TURN_NAME = "Claude Code Turn";
 const ASSISTANT_RUN_NAME = "Claude";

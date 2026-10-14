@@ -18,6 +18,9 @@ importers:
       '@langchain/langsmith-plugin-binary':
         specifier: github:langchain-ai/langsmith-plugin-binary#v0.3.0
         version: https://codeload.github.com/langchain-ai/langsmith-plugin-binary/tar.gz/f0fea706ecbb20ca45519801b510c07157c2bf9f
+      '@langchain/plugins-base':
+        specifier: 0.4.1
+        version: 0.4.1(langsmith@0.10.5)
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.5
@@ -216,6 +219,13 @@ packages:
     version: 0.1.0
     engines: {node: '>=22'}
     hasBin: true
+
+  '@langchain/plugins-base@0.4.1':
+    resolution: {integrity: sha512-JtyXLrrJcR4c/TDb7X3T6ZXE/m/axm+21Zlusy8pi/0Y5nnHUvhN/8lw/Rz4wcMCSRXsQ9E+c/dnX7O3J8KSog==}
+    engines: {node: '>=20'}
+    hasBin: true
+    peerDependencies:
+      langsmith: ^0.9.0 || ^0.10.0
 
   '@oxc-project/types@0.153.0':
     resolution: {integrity: sha512-jSNrRIyvPVLL5E1z/tS5zLAprosGz/FuI1PWwEOz59j3E4TTTzSpqKb/RDGqJhhW0QHYISGXxq582wGx6T11Tw==}
@@ -1128,6 +1138,10 @@ snapshots:
       '@jridgewell/sourcemap-codec': 1.6.0
 
   '@langchain/langsmith-plugin-binary@https://codeload.github.com/langchain-ai/langsmith-plugin-binary/tar.gz/f0fea706ecbb20ca45519801b510c07157c2bf9f': {}
+
+  '@langchain/plugins-base@0.4.1(langsmith@0.10.5)':
+    dependencies:
+      langsmith: 0.10.5
 
   '@oxc-project/types@0.153.0': {}
 

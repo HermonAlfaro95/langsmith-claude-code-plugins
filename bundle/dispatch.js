@@ -647,12 +647,18 @@ var binary = defineBinaryTarget({
 // dist/src/config.js
 import { readFileSync as readFileSync3 } from "node:fs";
 
-// dist/src/shared-config.js
-import { lstatSync, readFileSync, statSync } from "node:fs";
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/settings/constants.js
 var COMMON_BOOLEAN_SETTINGS = {
   enabled: { default: false, restrictive: false },
   defaultMuted: { default: false, restrictive: true }
 };
+var COMMON_CONFIG_FILE_NAME = "langsmith.json";
+var COMMON_CONFIG_ROOT_FILE_NAME = "langsmith-plugins.json";
+var COMMON_CONFIG_USER_ROOT_FILE_NAME = ".langsmith-plugins.json";
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/settings/common-config.js
+import { lstatSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
 function object(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -767,7 +773,7 @@ function readCommonConfigFile(path3) {
         lstatSync(path3);
       } catch (lstatError) {
         if (lstatError.code === "ENOENT") {
-          return { status: "absent", common: {}, diagnostics: [] };
+          return absent();
         }
       }
     }
@@ -778,6 +784,18 @@ function readCommonConfigFile(path3) {
   } catch {
     return invalid();
   }
+}
+function absent() {
+  return { status: "absent", common: {}, diagnostics: [] };
+}
+function readCommonConfigFiles(options) {
+  const { cwd, home, harnessDirectory } = options;
+  return {
+    harness: readCommonConfigFile(join(cwd, harnessDirectory, COMMON_CONFIG_FILE_NAME)),
+    root: readCommonConfigFile(join(cwd, COMMON_CONFIG_ROOT_FILE_NAME)),
+    user: home ? readCommonConfigFile(join(home, harnessDirectory, COMMON_CONFIG_FILE_NAME)) : absent(),
+    userRoot: home ? readCommonConfigFile(join(home, COMMON_CONFIG_USER_ROOT_FILE_NAME)) : absent()
+  };
 }
 function resolveField(sources, field) {
   return sources.find((source) => source[field] !== void 0)?.[field];
@@ -813,7 +831,7 @@ function toSdkReplicas(replicas2) {
 
 // dist/src/config.js
 import { homedir as homedir2, userInfo } from "node:os";
-import { join as join2, resolve } from "node:path";
+import { join as join3, resolve } from "node:path";
 
 // dist/src/logger.js
 import { appendFileSync, mkdirSync, statSync as statSync2, renameSync } from "node:fs";
@@ -954,13 +972,13 @@ import { execSync } from "node:child_process";
 import { execFileSync } from "node:child_process";
 import { mkdirSync as mkdirSync2, readFileSync as readFileSync2, renameSync as renameSync2, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname as dirname2, join } from "node:path";
+import { dirname as dirname2, join as join2 } from "node:path";
 function isLogin(printed) {
   return printed !== JQ_NULL_OUTPUT && GH_LOGIN_PATTERN.test(printed);
 }
 function markerPath() {
-  const stateFile = process.env.STATE_FILE ?? join(homedir(), ...STATE_FILE_DEFAULT);
-  return join(dirname2(stateFile), GH_LOGIN_MARKER_FILE);
+  const stateFile = process.env.STATE_FILE ?? join2(homedir(), ...STATE_FILE_DEFAULT);
+  return join2(dirname2(stateFile), GH_LOGIN_MARKER_FILE);
 }
 function failedRecently() {
   try {
@@ -1018,7 +1036,7 @@ function readAnthropicUserId() {
   const homeDir = process.env.HOME ?? process.env.USERPROFILE;
   if (!homeDir)
     return void 0;
-  const configPath = join2(homeDir, ".claude.json");
+  const configPath = join3(homeDir, ".claude.json");
   try {
     const raw = readFileSync3(configPath, "utf-8");
     const parsed = JSON.parse(raw);
@@ -1152,7 +1170,7 @@ function envBoolean(field) {
 function loadConfig(options) {
   const cwd = options?.cwd ?? process.cwd();
   const homeDir = homedir2();
-  const stateFilePath = process.env.STATE_FILE ?? join2(homeDir, ...STATE_FILE_DEFAULT);
+  const stateFilePath = process.env.STATE_FILE ?? join3(homeDir, ...STATE_FILE_DEFAULT);
   const debug2 = (process.env.CC_LANGSMITH_DEBUG ?? "").toLowerCase() === "true";
   let replicas2;
   const providedReplicas = process.env.CC_LANGSMITH_RUNS_ENDPOINTS;
@@ -1209,11 +1227,12 @@ function loadConfig(options) {
       error("Failed to parse CC_LANGSMITH_REDACT_EXTRA. Please make sure it is valid JSON.");
     }
   }
+  const files = readCommonConfigFiles({ cwd, home: homeDir, harnessDirectory: ".claude" });
   const common = mergeCommonConfig({
-    harness: readCommonConfigFile(join2(cwd, ".claude", "langsmith.json")).common,
-    root: readCommonConfigFile(join2(cwd, "langsmith-plugins.json")).common,
-    user: homeDir ? readCommonConfigFile(join2(homeDir, ".claude", "langsmith.json")).common : void 0,
-    userRoot: homeDir ? readCommonConfigFile(join2(homeDir, ".langsmith-plugins.json")).common : void 0,
+    harness: files.harness.common,
+    root: files.root.common,
+    user: files.user.common,
+    userRoot: files.userRoot.common,
     env: {
       enabled: envBoolean("enabled"),
       defaultMuted: envBoolean("defaultMuted"),
@@ -13863,7 +13882,7 @@ function createSecretAnonymizer(options) {
 }
 
 // dist/src/hooks/flush-queue.js
-import { join as join7 } from "node:path";
+import { join as join8 } from "node:path";
 
 // dist/src/utils/hook-init.js
 function initHook(cwd, options) {
@@ -13884,7 +13903,7 @@ function expandHome(path3) {
 
 // dist/src/queue.js
 import { mkdirSync as mkdirSync6, readFileSync as readFileSync7, readdirSync as readdirSync3, statSync as statSync5, unlinkSync as unlinkSync4 } from "node:fs";
-import { join as join5 } from "node:path";
+import { join as join6 } from "node:path";
 import { createHmac, randomUUID as randomUUID2 } from "node:crypto";
 
 // dist/src/utils/atomic-file.js
@@ -13903,13 +13922,13 @@ function publishByRename(path3, contents, tempSuffix, mode) {
 
 // dist/src/utils/session-store.js
 import { readdirSync, rmdirSync } from "node:fs";
-import { dirname as dirname3, join as join3 } from "node:path";
+import { dirname as dirname3, join as join4 } from "node:path";
 var safeName = (value) => {
   const safe = value.replace(QUEUE_SESSION_UNSAFE_CHARS, "_");
   return /[^.]/.test(safe) ? safe : `_${safe}`;
 };
-var storeRoot = (stateFilePath, dirName) => join3(dirname3(stateFilePath), dirName);
-var storeDir = (stateFilePath, dirName, sessionId) => join3(storeRoot(stateFilePath, dirName), safeName(sessionId));
+var storeRoot = (stateFilePath, dirName) => join4(dirname3(stateFilePath), dirName);
+var storeDir = (stateFilePath, dirName, sessionId) => join4(storeRoot(stateFilePath, dirName), safeName(sessionId));
 function listStoredSessions(stateFilePath, dirName) {
   try {
     return readdirSync(storeRoot(stateFilePath, dirName), { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
@@ -14109,15 +14128,15 @@ function createRunTree(config, mode = "full") {
 
 // dist/src/turn-record.js
 import { appendFileSync as appendFileSync2, existsSync as existsSync3, mkdirSync as mkdirSync5, readFileSync as readFileSync6, readdirSync as readdirSync2, statSync as statSync4, unlinkSync as unlinkSync3 } from "node:fs";
-import { dirname as dirname4, join as join4 } from "node:path";
+import { dirname as dirname4, join as join5 } from "node:path";
 var turnRecordRoot = (stateFilePath) => storeRoot(stateFilePath, TURN_RECORD_DIR_NAME);
 var turnRecordDir = (stateFilePath, sessionId) => storeDir(stateFilePath, TURN_RECORD_DIR_NAME, sessionId);
 function turnRecordPath(stateFilePath, sessionId, turnKey) {
-  return join4(turnRecordDir(stateFilePath, sessionId), `${safeName(turnKey)}${TURN_RECORD_SUFFIX}`);
+  return join5(turnRecordDir(stateFilePath, sessionId), `${safeName(turnKey)}${TURN_RECORD_SUFFIX}`);
 }
 function entriesIn(dir, suffix) {
   try {
-    return readdirSync2(dir).filter((name) => name.endsWith(suffix)).sort().map((name) => join4(dir, name));
+    return readdirSync2(dir).filter((name) => name.endsWith(suffix)).sort().map((name) => join5(dir, name));
   } catch {
     return [];
   }
@@ -14279,7 +14298,7 @@ function entryIds(dir) {
   }
 }
 function entryPath(dir, queueId) {
-  return join5(dir, `${queueId}${QUEUE_FILE_SUFFIX}`);
+  return join6(dir, `${queueId}${QUEUE_FILE_SUFFIX}`);
 }
 function readEntry(dir, queueId) {
   try {
@@ -14367,7 +14386,7 @@ function discardEmptyQueue(dir, now = Date.now()) {
     return;
   for (const name of names(dir).filter((entry) => entry.endsWith(QUEUE_TEMP_SUFFIX))) {
     try {
-      unlinkSync4(join5(dir, name));
+      unlinkSync4(join6(dir, name));
     } catch {
     }
   }
@@ -14526,7 +14545,7 @@ import { isAbsolute as isAbsolute2 } from "node:path";
 
 // dist/src/repo-attribution-paths.js
 import { existsSync as existsSync4, statSync as statSync6 } from "node:fs";
-import { dirname as dirname5, isAbsolute, join as join6, resolve as resolve2 } from "node:path";
+import { dirname as dirname5, isAbsolute, join as join7, resolve as resolve2 } from "node:path";
 function toolPathFromInput(toolInput, sessionCwd) {
   if (!toolInput || typeof toolInput !== "object" || Array.isArray(toolInput)) {
     return { namedAPath: false };
@@ -14565,7 +14584,7 @@ function nearestExistingDirectory(path3) {
 }
 function gitMarkerAt(directory) {
   try {
-    return statSync6(join6(directory, GIT_DIRECTORY_NAME)).isDirectory() ? GIT_MARKERS.REPOSITORY_ROOT : GIT_MARKERS.ONLY_GIT_CAN_SAY;
+    return statSync6(join7(directory, GIT_DIRECTORY_NAME)).isDirectory() ? GIT_MARKERS.REPOSITORY_ROOT : GIT_MARKERS.ONLY_GIT_CAN_SAY;
   } catch {
     return GIT_MARKERS.NOTHING_HERE;
   }
@@ -14924,7 +14943,7 @@ async function settleTurns(recordDir, config, origin, client2, watch) {
   discardDirIfEmpty(recordDir);
 }
 async function drainSession(session, config, origin) {
-  const dir = join7(queueDir(config.stateFilePath), session);
+  const dir = join8(queueDir(config.stateFilePath), session);
   const flushTarget = `${dir}.flush`;
   if (!tryAcquireLock(flushTarget)) {
     debug(`Another flusher already owns ${dir}`);
@@ -14932,7 +14951,7 @@ async function drainSession(session, config, origin) {
   }
   const client2 = flusherClient(config);
   const watch = watchUploads(client2);
-  const records = join7(turnRecordRoot(config.stateFilePath), session);
+  const records = join8(turnRecordRoot(config.stateFilePath), session);
   try {
     await uploadQueued(dir, config, origin, client2, watch);
     await settleTurns(records, config, origin, client2, watch);
@@ -14941,10 +14960,10 @@ async function drainSession(session, config, origin) {
   }
 }
 function looksAbandoned(session, stateFilePath) {
-  const queued = join7(queueDir(stateFilePath), session);
+  const queued = join8(queueDir(stateFilePath), session);
   if (foreignQueueLooksAbandoned(queued))
     return true;
-  return recordsIdleMs(join7(turnRecordRoot(stateFilePath), session)) >= FOREIGN_QUEUE_MIN_RECORD_AGE_MS;
+  return recordsIdleMs(join8(turnRecordRoot(stateFilePath), session)) >= FOREIGN_QUEUE_MIN_RECORD_AGE_MS;
 }
 async function main(cwd, sessionId) {
   const config = initHook(cwd);
@@ -14961,7 +14980,7 @@ async function main(cwd, sessionId) {
   for (const session of [...sessions].sort()) {
     if (session !== own && !looksAbandoned(session, config.stateFilePath)) {
       debug(`Not flushing ${session}, which another session may still be writing to`);
-      discardEmptyQueue(join7(queueDir(config.stateFilePath), session));
+      discardEmptyQueue(join8(queueDir(config.stateFilePath), session));
       continue;
     }
     try {
