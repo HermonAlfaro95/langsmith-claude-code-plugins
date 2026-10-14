@@ -19,6 +19,7 @@
     "tsx": "tsx",
     "lint": "pnpm lint:code",
     "lint:code": "oxlint",
+    "typecheck": "tsc -p tsconfig.test.json",
     "lint:fix": "oxlint --fix",
     "clean": "rm -rf dist bin"
   },
@@ -27,7 +28,6 @@
   },
   "devDependencies": {
     "@langchain/plugins-base": "0.4.1",
-    "@langchain/langsmith-plugin-binary": "github:langchain-ai/langsmith-plugin-binary#v0.3.0",
     "@types/node": "^26.6.5",
     "esbuild": "^0.28.1",
     "oxfmt": "^0.72.0",

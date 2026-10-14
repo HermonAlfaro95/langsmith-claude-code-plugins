@@ -42,9 +42,9 @@
 
 import { resolveTurnTracingMode } from "./tracing-mode.js";
 import { debug, error } from "./logger.js";
-import { flushPendingTraces, traceWorkflowStage } from "./langsmith.js";
-import { getSessionState, loadState } from "./state.js";
+import { traceWorkflowStage } from "./langsmith.js";
 import { WORKFLOW_TOOL_NAME } from "./constants.js";
+import { getSessionState, loadState } from "./state.js";
 import type { SessionState, WorkflowLaunch, TaskRunEntry } from "./types.js";
 
 /**
@@ -101,7 +101,6 @@ export async function handleWorkflowSubagentStop(opts: {
   agentTranscriptPath: string;
   stateFilePath: string;
   defaultMuted?: boolean;
-  project: string;
   customMetadata?: Record<string, unknown>;
 }): Promise<void> {
   const runId = workflowRunIdFromPath(opts.agentTranscriptPath);
@@ -135,7 +134,6 @@ export async function handleWorkflowSubagentStop(opts: {
         launchingTurnId === ss.current_turn_run_id ? ss.current_turn_tracing : undefined,
       ),
       sessionId: opts.sessionId,
-      project: opts.project,
       customMetadata: opts.customMetadata,
       workflowRun: { run_id: entry.run_id, dotted_order: entry.dotted_order },
       parentTraceId,
@@ -150,6 +148,4 @@ export async function handleWorkflowSubagentStop(opts: {
   } catch (err) {
     error(`Failed to trace workflow stage ${opts.agentId}: ${err}`);
   }
-
-  await flushPendingTraces();
 }

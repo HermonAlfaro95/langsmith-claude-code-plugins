@@ -8,12 +8,9 @@ import type {
   CodingAgentAgentType,
   CodingAgentMetadataOptions,
 } from "@langchain/plugins-base/metadata";
-import type {
-  BOOLEAN_SETTINGS,
-  HOOK_EVENT_NAMES,
-  PINNED_REPOSITORY_KEYS,
-  TURN_RECORD_LINE,
-} from "./constants.js";
+import type { PluginSession } from "@langchain/plugins-base/plugin";
+import type { TurnRecord } from "@langchain/plugins-base/tracing/settlement";
+import type { BOOLEAN_SETTINGS, HOOK_EVENT_NAMES, PINNED_REPOSITORY_KEYS } from "./constants.js";
 
 export type TracingMode = "full" | "metadata";
 
@@ -211,6 +208,41 @@ export type ClaudeMetadataOptions = Omit<
   "integration" | "integrationVersion" | "threadId" | "runType"
 > & { sessionId: string };
 
+export interface ClaudeRun {
+  id: string;
+  name: string;
+  run_type: string;
+  start_time: string | number;
+  end_time?: string | number;
+  inputs?: Record<string, unknown>;
+  outputs?: Record<string, unknown>;
+  error?: string;
+  parent_run_id?: string;
+  trace_id: string;
+  dotted_order: string;
+  metadata: CodingAgentMetadataOptions;
+}
+
+export type RunOperation = "post" | "patch";
+
+export interface ClaudeTracingSession extends PluginSession {
+  destinations: readonly { id: string }[];
+}
+
+export interface EngineRunPayload {
+  privacyMode: TracingMode;
+  run: Record<string, string>;
+}
+
+export interface EngineTurnRecord {
+  record: TurnRecord;
+  landed: boolean;
+}
+
+export interface TurnEvidenceChildren {
+  childRunIds?: string[];
+}
+
 export interface MetadataWithPins {
   [PINNED_REPOSITORY_KEYS]?: ReadonlySet<string>;
 }
@@ -357,100 +389,18 @@ export interface TracingState {
   [sessionId: string]: SessionState;
 }
 
-// ─── Standalone Binary ──────────────────────────────────────────────────────
-
-// ─── Test Fixtures ──────────────────────────────────────────────────────────
-
-export type FakeRunVerdict = { status: number; body?: string } | "ignore" | undefined;
-
-export interface FakeLangSmithRules {
-  rejects?(body: string): boolean;
-  rejectsRun?(wire: { action: "post" | "patch"; run: Record<string, any> }): FakeRunVerdict;
-}
-
-// ─── Upload queue ───────────────────────────────────────────────────────────
-
-/** Everything an upload depends on beyond the run itself, which decides where it may be sent. */
-export interface QueueDestination {
-  apiBaseUrl: string;
-  apiKey: string;
-  replicas?: unknown;
-  redact?: boolean;
-  redactExtraRules?: unknown;
-}
-
-/** One finished run waiting to be uploaded, written by a hook that did not wait. */
-export interface QueuedRun {
-  queue_id: string;
-  tracing: TracingMode;
-  attempts: number;
-  /** Which LangSmith account this was queued for, so no stranger uploads it to their own. */
-  origin: string;
-  /** A RunTree config without `client` or `replicas`, which the flusher supplies. */
-  run: Record<string, unknown>;
-  record?: string;
-  /** Where the tool worked, so the flusher can settle the repository without the hook running git. */
-  where?: ToolOrigin;
-}
-
-export interface RecordedRun {
+/** Trace context of the turn that launched a background run. */
+export interface LaunchingTurn {
+  tracing?: TracingMode;
   run_id: string;
+  trace_id?: string;
+  dotted_order?: string;
   parent_run_id?: string;
-  trace_id: string;
-  dotted_order: string;
-  name: string;
-  run_type: string;
-  project_name?: string;
   start_time?: string;
-  end_time?: string;
-  tracing: TracingMode;
-  open?: boolean;
-  metadata: Record<string, unknown>;
+  turn_number?: number;
+  runtime_version?: string;
+  approval_policy?: string;
 }
-
-export type TurnRecordLine =
-  | { k: typeof TURN_RECORD_LINE.run; root?: boolean; origin?: string; run: RecordedRun }
-  | { k: typeof TURN_RECORD_LINE.closed; turn_id?: string }
-  | { k: typeof TURN_RECORD_LINE.delivered; id: string }
-  | { k: typeof TURN_RECORD_LINE.reconciled; id: string };
-
-export interface TurnRecordTarget {
-  path: string;
-  origin: string;
-}
-
-export interface TurnRecord {
-  path: string;
-  origin: string;
-  root?: RecordedRun;
-  children: RecordedRun[];
-  turnId?: string;
-  closed: boolean;
-  delivered: Set<string>;
-  fixed: Set<string>;
-}
-
-export interface Config {
-  /** Resolved from env, then project config, then user config. */
-  enabled: boolean;
-  /** For threads with no preference of their own. */
-  defaultMuted: boolean;
-  apiKey: string;
-  project: string;
-  apiBaseUrl: string;
-  stateFilePath: string;
-  debug: boolean;
-  /** Existing run to nest every trace under. */
-  parentDottedOrder?: string;
-  replicas?: RunTreeConfig["replicas"];
-  /** Added to every run, including repo info and CC_LANGSMITH_METADATA. */
-  customMetadata?: Record<string, unknown>;
-  redact: boolean;
-  /** From CC_LANGSMITH_REDACT_EXTRA or the config file. */
-  redactExtraRules?: StringNodeRule[];
-}
-
-export type BooleanSetting = keyof typeof BOOLEAN_SETTINGS;
 
 /** Assistant and tool runs are siblings under the turn run. */
 export interface TraceTurnOptions {
@@ -459,7 +409,6 @@ export interface TraceTurnOptions {
   turn: Turn;
   sessionId: string;
   turnNum: number;
-  project: string;
   parentRunId?: string;
   existingTaskRunMap?: Record<string, TaskRunEntry>;
   /** Already traced by PostToolUse, so skipped. */
@@ -472,7 +421,7 @@ export interface TraceTurnOptions {
   /** Sent as `approval_policy` on the turn run only. */
   approvalPolicy?: string;
   agentType?: CodingAgentAgentType;
-  record?: TurnRecordTarget;
+  rootRunId?: string;
   hookCwd?: string;
 }
 
@@ -480,7 +429,6 @@ export interface TraceTurnOptions {
 export interface TurnRunIdentity {
   tracing?: TracingMode;
   sessionId: string;
-  project: string;
   runId: string;
   traceId?: string;
   dottedOrder?: string;
@@ -512,27 +460,6 @@ export interface TaskRunEntry {
   /** Matches workflow stage SubagentStops, which carry it in their path. */
   workflow_run_id?: string;
   is_workflow?: boolean;
-}
-
-/** Trace context of the turn that launched a background run. */
-export interface LaunchingTurn {
-  tracing?: TracingMode;
-  run_id: string;
-  trace_id?: string;
-  dotted_order?: string;
-  parent_run_id?: string;
-  start_time?: string;
-  turn_number?: number;
-  runtime_version?: string;
-  approval_policy?: string;
-}
-
-export interface WorkflowLaunch {
-  /** The completion notification refers to it. */
-  taskId: string;
-  /** Appears in each stage's transcript path. */
-  runId: string;
-  workflowName?: string;
 }
 
 export interface PreToolUseHookInput {
@@ -593,6 +520,14 @@ export interface SessionEndHookInput {
   reason: string;
 }
 
+export interface WorkflowLaunch {
+  /** The completion notification refers to it. */
+  taskId: string;
+  /** Appears in each stage's transcript path. */
+  runId: string;
+  workflowName?: string;
+}
+
 export interface UserPromptSubmitHookInput {
   session_id: string;
   transcript_path: string;
@@ -603,6 +538,28 @@ export interface UserPromptSubmitHookInput {
   agent_id?: string;
   agent_type?: string;
 }
+
+export interface Config {
+  /** Resolved from env, then project config, then user config. */
+  enabled: boolean;
+  /** For threads with no preference of their own. */
+  defaultMuted: boolean;
+  apiKey: string;
+  project: string;
+  apiBaseUrl: string;
+  stateFilePath: string;
+  debug: boolean;
+  /** Existing run to nest every trace under. */
+  parentDottedOrder?: string;
+  replicas?: RunTreeConfig["replicas"];
+  /** Added to every run, including repo info and CC_LANGSMITH_METADATA. */
+  customMetadata?: Record<string, unknown>;
+  redact: boolean;
+  /** From CC_LANGSMITH_REDACT_EXTRA or the config file. */
+  redactExtraRules?: StringNodeRule[];
+}
+
+export type BooleanSetting = keyof typeof BOOLEAN_SETTINGS;
 
 export interface StatePatchOperation {
   path: string[];

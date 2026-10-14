@@ -14,7 +14,7 @@ import {
   completedToolUseIds,
   turnToolInputs,
 } from "../transcript.js";
-import { awaitsTheTurn, turnScopedMetadata } from "../repo-attribution.js";
+import { turnScopedMetadata } from "../repo-attribution.js";
 import { log, warn, debug, error } from "../logger.js";
 import {
   loadState,
@@ -24,22 +24,13 @@ import {
   pruneOldSessions,
   advanceToolTracingProgress,
 } from "../state.js";
-import {
-  initTracing,
-  traceTurn,
-  tracePendingSubagents,
-  completeTurnRun,
-  flushPendingTraces,
-} from "../langsmith.js";
+import { traceTurn, tracePendingSubagents, completeTurnRun } from "../langsmith.js";
 import { initHook, expandHome } from "../utils/hook-init.js";
 import { isPayloadForHook } from "../utils/harness.js";
 import { readStdin } from "../utils/stdin.js";
-import { startQueueFlusher } from "../utils/detach.js";
-import { readTurnRecord, recordRun, recordTurnClosed, turnRecordPath } from "../turn-record.js";
-import { queueOrigin } from "../queue.js";
-import { everyChildLanded, settledFromTurn, settledTurnMetadata } from "../reconcile.js";
 import { finalizeNotificationChain } from "../finalize.js";
-import { MUTED_TRACE_CONTENT } from "../privacy.js";
+import { initTracing, settledFromTurn } from "../tracing-engine.js";
+import { MUTED_TRACE_CONTENT } from "@langchain/plugins-base/privacy";
 import type { StopHookInput, TaskRunEntry } from "../types.js";
 
 export async function main(): Promise<void> {
@@ -54,9 +45,6 @@ export async function main(): Promise<void> {
 
   debug(`Stop hook started, session=${input.session_id}`);
 
-  // Hand the queued tool runs to a detached uploader, off this turn's response path.
-  startQueueFlusher(input.cwd, input.session_id);
-
   // Skip recursive hook calls.
   if (input.stop_hook_active) {
     debug("stop_hook_active=true, skipping");
@@ -70,13 +58,7 @@ export async function main(): Promise<void> {
     return;
   }
 
-  initTracing(
-    config.apiKey,
-    config.apiBaseUrl,
-    config.replicas,
-    config.redact,
-    config.redactExtraRules,
-  );
+  initTracing(config, input.cwd, input.session_id);
 
   // Load state and read new messages.
   const state = loadState(config.stateFilePath);
@@ -119,12 +101,7 @@ export async function main(): Promise<void> {
     ? ((sessionState.task_run_map?.[notifiedBy]?.deferred as Record<string, unknown> | undefined)
         ?.parent_run_id as string | undefined)
     : undefined;
-  const sessionMetadata = settledFromTurn({
-    base: config.customMetadata,
-    stateFilePath: config.stateFilePath,
-    sessionId: input.session_id,
-    turnRunId: notifiedFrom,
-  });
+  const sessionMetadata = await settledFromTurn(config.customMetadata, notifiedFrom);
 
   // Group into turns and trace each one.
   const turns = groupIntoTurns(messages);
@@ -179,12 +156,6 @@ export async function main(): Promise<void> {
   const currentTraceId = sessionState.current_trace_id;
   const currentDottedOrder = sessionState.current_dotted_order;
   const currentParentRunId = sessionState.current_parent_run_id;
-  const currentTurnRecord = currentRunId
-    ? {
-        path: turnRecordPath(config.stateFilePath, input.session_id, currentRunId),
-        origin: queueOrigin(config),
-      }
-    : undefined;
 
   for (let i = 0; i < turns.length; i++) {
     const turn = turns[i];
@@ -202,7 +173,6 @@ export async function main(): Promise<void> {
     const tracedToolUseIds = isLastTurn
       ? new Set(sessionState.traced_tool_use_ids ?? [])
       : undefined;
-    const record = isLastTurn ? currentTurnRecord : undefined;
 
     try {
       const taskRunMap = await traceTurn({
@@ -212,7 +182,6 @@ export async function main(): Promise<void> {
         turn,
         sessionId: input.session_id,
         turnNum,
-        project: config.project,
         customMetadata: sessionMetadata,
         hookCwd: input.cwd,
         runtimeVersion,
@@ -223,7 +192,6 @@ export async function main(): Promise<void> {
         tracedToolUseIds,
         traceId,
         parentDottedOrder: dottedOrder,
-        record,
       });
       allTaskRunMaps = { ...allTaskRunMaps, ...taskRunMap };
       tracedTurns++;
@@ -258,12 +226,10 @@ export async function main(): Promise<void> {
       pendingSubagents,
       taskRunMap: mergedTaskRunMap,
       parentTraceId: freshSession.current_trace_id,
-      project: config.project,
       customMetadata: sessionMetadata,
       runtimeVersion,
       turnId: lastTurnId,
       turnNumber: sessionState.current_turn_number,
-      record: currentTurnRecord,
     });
     for (const sa of pendingSubagents) processedAgentIds.add(sa.agent_id);
   }
@@ -408,19 +374,10 @@ export async function main(): Promise<void> {
   });
 
   // Complete the Turn run created by UserPromptSubmit (unless deferred above).
-  let turnRecord: string | undefined;
-  let closedTurnRun: Record<string, unknown> | undefined;
-  let leaveTurnOpen = false;
   if (completeNow && currentRunId) {
     debug(`Completing Turn run ${currentRunId}`);
-    turnRecord = turnRecordPath(config.stateFilePath, input.session_id, currentRunId);
-    const record = readTurnRecord(turnRecord);
-    const everythingIn = !record || everyChildLanded(record);
-    const settled = everythingIn ? settledTurnMetadata(turnMetadata, record) : turnMetadata;
-    leaveTurnOpen = !everythingIn && awaitsTheTurn(settled);
     try {
-      closedTurnRun = await completeTurnRun({
-        leaveOpen: leaveTurnOpen,
+      await completeTurnRun({
         tracing: currentTracing,
         sessionId: input.session_id,
         runId: currentRunId,
@@ -428,9 +385,8 @@ export async function main(): Promise<void> {
         dottedOrder: currentDottedOrder,
         parentRunId: currentParentRunId,
         startTime: sessionState.current_turn_start,
-        project: config.project,
         lastAssistantMessage: input.last_assistant_message,
-        customMetadata: settled,
+        customMetadata: turnMetadata,
         turnId: lastTurnId,
         turnNumber: sessionState.current_turn_number,
         runtimeVersion,
@@ -452,7 +408,6 @@ export async function main(): Promise<void> {
       defaultMuted: config.defaultMuted,
       stateFilePath: config.stateFilePath,
       sessionId: input.session_id,
-      project: config.project,
       customMetadata: config.customMetadata,
       runtimeVersion,
       agentId: doneAgentId,
@@ -474,7 +429,6 @@ export async function main(): Promise<void> {
       defaultMuted: config.defaultMuted,
       stateFilePath: config.stateFilePath,
       sessionId: input.session_id,
-      project: config.project,
       customMetadata: config.customMetadata,
       runtimeVersion,
       agentId: notificationToFinalize,
@@ -504,32 +458,12 @@ export async function main(): Promise<void> {
         defaultMuted: config.defaultMuted,
         stateFilePath: config.stateFilePath,
         sessionId: input.session_id,
-        project: config.project,
         customMetadata: config.customMetadata,
         runtimeVersion,
         agentId: notificationToFinalize,
       });
     }
   }
-
-  // Flush pending batches to ensure all traces are sent before hook exits.
-  await flushPendingTraces();
-
-  if (turnRecord) {
-    if (closedTurnRun) {
-      recordRun({
-        path: turnRecord,
-        run: closedTurnRun,
-        tracing: currentTracing,
-        origin: queueOrigin(config),
-        root: true,
-        closesAt: leaveTurnOpen ? new Date().toISOString() : undefined,
-      });
-    }
-    recordTurnClosed(turnRecord, lastTurnId);
-  }
-
-  startQueueFlusher(input.cwd, input.session_id);
 
   const duration = ((Date.now() - startTime) / 1000).toFixed(1);
   log(`Processed ${tracedTurns} turns in ${duration}s`);

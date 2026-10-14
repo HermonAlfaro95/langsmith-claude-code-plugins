@@ -25,9 +25,9 @@ vi.mock("node:fs", async (importOriginal) => {
   return {
     ...real,
     readdirSync: ((...args: Parameters<typeof real.readdirSync>) => {
-      const names = real.readdirSync(...args) as string[];
+      const names = real.readdirSync(...args) as unknown as string[];
       return hooks.reverseListing ? names.reverse() : names;
-    }) as typeof real.readdirSync,
+    }) as unknown as typeof real.readdirSync,
     readFileSync: ((...args: Parameters<typeof real.readFileSync>) => {
       const result = real.readFileSync(...args);
       const after = hooks.afterStateRead;

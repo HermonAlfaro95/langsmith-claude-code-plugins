@@ -343,7 +343,9 @@ describe("loadConfig", () => {
     ]);
     const config = loadConfig({ cwd });
     expect(config.replicas).toHaveLength(2);
-    expect(config.replicas?.[1].updates).toEqual({ metadata: { environment: "staging" } });
+    expect((config.replicas?.[1] as { updates?: unknown } | undefined)?.updates).toEqual({
+      metadata: { environment: "staging" },
+    });
   });
 
   it("returns undefined replicas when CC_LANGSMITH_RUNS_ENDPOINTS not set", () => {

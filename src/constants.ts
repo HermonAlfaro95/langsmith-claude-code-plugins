@@ -2,21 +2,33 @@ import { COMMON_BOOLEAN_SETTINGS } from "@langchain/plugins-base/settings";
 
 const USER_PROMPT_TURN_NAME = "Claude Code Turn";
 const ASSISTANT_RUN_NAME = "Claude";
-const LS_INTEGRATION = "claude-code";
-const METADATA_MODE_RUN_FIELDS = [
-  "client",
+const LS_INTEGRATION = "claude-code" as const;
+const ENGINE_STORAGE_DIR_NAME = "langsmith_engine";
+const RUN_CAPTURE_EVENT_KINDS: readonly string[] = ["run-post", "run-patch"];
+const SDK_REPLICA_PROBE = { name: "replicas", run_type: "chain" } as const;
+const TOOL_SETTLEMENT_EVENT_PREFIX = "tool:";
+const POST_EVENT_PREFIX = "post:";
+const PATCH_EVENT_PREFIX = "patch:";
+const RUN_EVENT_PREFIXES = { post: POST_EVENT_PREFIX, patch: PATCH_EVENT_PREFIX } as const;
+const CAPTURE_SAVED_STATUSES: readonly string[] = ["published", "duplicate"];
+const WORKER_STOP_STATUSES: readonly string[] = ["dropped", "retry-exhausted", "scope-mismatch"];
+const RECOVERY_REPORT_PROBLEM_STATUSES: readonly string[] = ["partial", "failed"];
+const TRACING_NOT_STARTED_MESSAGE = "Tracing has not started for this hook";
+const SESSION_END_STARTUP_WAIT_MS = 500;
+const RUN_CONTEXT_FIELDS = [
   "id",
   "name",
   "run_type",
-  "project_name",
   "start_time",
-  "end_time",
   "parent_run_id",
   "trace_id",
   "dotted_order",
 ] as const;
+const RUN_PATCH_FIELDS = ["outputs", "end_time", "error"] as const;
+const RUN_SNAPSHOT_FIELDS = [...RUN_CONTEXT_FIELDS, "inputs", ...RUN_PATCH_FIELDS] as const;
 
 /** `hooks/hooks.json` is tested against this list. */
+const BINARY_COLD_START_TIMEOUT_MS = 60_000;
 const HOOK_EVENT_NAMES = [
   "UserPromptSubmit",
   "PreToolUse",
@@ -48,14 +60,6 @@ const REPOSITORY_METADATA_KEYS = [...TURN_REPOSITORY_KEYS, "ls_attribution_ident
 const PINNED_REPOSITORY_KEYS = Symbol("pinned repository metadata keys");
 
 const NO_PINNED_KEYS: ReadonlySet<string> = new Set();
-const QUEUE_DIR_NAME = "langsmith_queue";
-const QUEUE_FILE_SUFFIX = ".queue.json";
-
-/** Replaced so a session id can't escape its folder. */
-const QUEUE_SESSION_UNSAFE_CHARS = /[^\w.-]/g;
-
-/** Half-written files use these so readers never see them. */
-const QUEUE_TEMP_SUFFIX = ".queue.tmp";
 
 const STATE_TEMP_SUFFIX = ".state.tmp";
 const STATE_LOCK_RELEASE_WARNING = "Could not release the shared state lock";
@@ -75,60 +79,35 @@ const PENDING_STATE_WRITE_ATTEMPTS = 3;
 
 const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-/** Staged then linked so a lock always carries its owner's pid. */
-const LOCK_STAGING_SUFFIX = ".lock.staging";
-
 /** Owner-only since these files hold trace content. */
 const PRIVATE_DIR_MODE = 0o700;
 const PRIVATE_FILE_MODE = 0o600;
 
-const QUEUE_ORIGIN_LENGTH = 12;
-
-/** Pads entry names so they sort by time. */
-const QUEUE_ID_TIME_WIDTH = 16;
-
-const QUEUE_MAX_ENTRIES = 500;
-
-const QUEUE_MAX_ATTEMPTS = 5;
-
-/** LangSmith rejects a batch holding a run older than this. */
-const QUEUE_RUN_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-
-/** Another session's queue is only flushed once this quiet. */
-const FOREIGN_QUEUE_MIN_RECORD_AGE_MS = 2 * 60 * 60 * 1000;
-
-const EMPTY_QUEUE_MIN_IDLE_MS = 2 * 60 * 60 * 1000;
-
-const FLUSH_QUEUE_ARG = "--flush-queue";
+/** Argument that runs the background uploader instead of a hook handler. */
+const ENGINE_WORKER_ARG = "--engine-worker";
 
 const STATE_FILE_DEFAULT = [".claude", "state", "langsmith_state.json"];
 
 const GH_LOGIN_MARKER_FILE = "langsmith_gh_login.json";
 
-const TURN_RECORD_DIR_NAME = "langsmith_turns";
-const TURN_RECORD_SUFFIX = ".turn.jsonl";
-
-const TURN_RECORD_MAX_BYTES = 8 * 1024 * 1024;
-
 const REPOSITORY_NAME_KEY = "repository_name";
 
 const ATTRIBUTION_IDENTIFIER_KEY = "ls_attribution_identifier";
-
-const UPDATE_ALREADY_RECEIVED_STATUS = 409;
-
-const RECORDED_RUN_FALLBACK_TYPE = "tool";
-
-const TURN_RECORD_LINE = {
-  run: "run",
-  closed: "closed",
-  delivered: "ok",
-  reconciled: "fixed",
-} as const;
 
 const BOOLEAN_SETTINGS = {
   enabled: { env: "TRACE_TO_LANGSMITH", ...COMMON_BOOLEAN_SETTINGS.enabled },
   defaultMuted: { env: "CC_LANGSMITH_DEFAULT_MUTED", ...COMMON_BOOLEAN_SETTINGS.defaultMuted },
 } as const;
+
+const USAGE_TEMPLATE = `Usage:
+  {name} <HookEventName>
+  {name} --version
+
+Options:
+  --help, -h     Show this help and exit
+  --version, -v  Print the installed version and exit`;
+
+const WORKER_LOG_NAME = "worker.log";
 
 const MAX_LOG_BYTES = 5 * 1024 * 1024; // 5 MB
 
@@ -145,6 +124,8 @@ const WORKFLOW_SUBAGENT_TYPE = "workflow-subagent";
 const KILLED_NOTIFICATION_STATUS = "killed";
 
 export {
+  USAGE_TEMPLATE,
+  WORKER_LOG_NAME,
   BOOLEAN_SETTINGS,
   MAX_LOG_BYTES,
   LOOKUP_TIMEOUT_MS,
@@ -155,27 +136,31 @@ export {
   USER_PROMPT_TURN_NAME,
   ASSISTANT_RUN_NAME,
   LS_INTEGRATION,
-  METADATA_MODE_RUN_FIELDS,
+  ENGINE_STORAGE_DIR_NAME,
+  SDK_REPLICA_PROBE,
+  RUN_CAPTURE_EVENT_KINDS,
+  TOOL_SETTLEMENT_EVENT_PREFIX,
+  POST_EVENT_PREFIX,
+  RUN_EVENT_PREFIXES,
+  CAPTURE_SAVED_STATUSES,
+  WORKER_STOP_STATUSES,
+  RECOVERY_REPORT_PROBLEM_STATUSES,
+  TRACING_NOT_STARTED_MESSAGE,
+  SESSION_END_STARTUP_WAIT_MS,
+  RUN_CONTEXT_FIELDS,
+  RUN_PATCH_FIELDS,
+  RUN_SNAPSHOT_FIELDS,
+  BINARY_COLD_START_TIMEOUT_MS,
   HOOK_EVENT_NAMES,
   CURSOR_VERSION_FIELD,
   TOOL_PATH_INPUT_KEYS,
   REPOSITORY_METADATA_KEYS,
   REPOSITORY_NAME_KEY,
   ATTRIBUTION_IDENTIFIER_KEY,
-  UPDATE_ALREADY_RECEIVED_STATUS,
-  TURN_RECORD_DIR_NAME,
-  TURN_RECORD_SUFFIX,
-  TURN_RECORD_MAX_BYTES,
-  TURN_RECORD_LINE,
-  RECORDED_RUN_FALLBACK_TYPE,
   PINNED_REPOSITORY_KEYS,
   NO_PINNED_KEYS,
   STATE_FILE_DEFAULT,
   GH_LOGIN_MARKER_FILE,
-  QUEUE_DIR_NAME,
-  QUEUE_FILE_SUFFIX,
-  QUEUE_SESSION_UNSAFE_CHARS,
-  QUEUE_TEMP_SUFFIX,
   STATE_TEMP_SUFFIX,
   STATE_LOCK_RELEASE_WARNING,
   STATE_LOCK_BUSY_WARNING,
@@ -190,15 +175,7 @@ export {
   PENDING_STATE_SEQUENCE_WIDTH,
   PENDING_STATE_WRITE_ATTEMPTS,
   SESSION_MAX_AGE_MS,
-  LOCK_STAGING_SUFFIX,
-  QUEUE_ID_TIME_WIDTH,
   PRIVATE_DIR_MODE,
   PRIVATE_FILE_MODE,
-  QUEUE_ORIGIN_LENGTH,
-  QUEUE_MAX_ENTRIES,
-  QUEUE_MAX_ATTEMPTS,
-  QUEUE_RUN_MAX_AGE_MS,
-  FOREIGN_QUEUE_MIN_RECORD_AGE_MS,
-  EMPTY_QUEUE_MIN_IDLE_MS,
-  FLUSH_QUEUE_ARG,
+  ENGINE_WORKER_ARG,
 };

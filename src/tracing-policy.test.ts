@@ -35,8 +35,12 @@ vi.mock("./config.js", () => ({ loadConfig: mocks.config }));
 vi.mock("./utils/hook-init.js", () => ({ initHook: mocks.init, expandHome: (p: string) => p }));
 vi.mock("./utils/stdin.js", () => ({ readStdin: mocks.stdin }));
 vi.mock("./logger.js", () => ({ debug: vi.fn(), error: vi.fn(), warn: vi.fn() }));
-vi.mock("./langsmith.js", () => ({
+vi.mock("./tracing-engine.js", () => ({
   initTracing: mocks.tracing,
+  captureRun: vi.fn(),
+  settledFromTurn: async (base: unknown) => base,
+}));
+vi.mock("./langsmith.js", () => ({
   closeInterruptedTurn: vi.fn(),
   generateDottedOrderSegment: vi.fn(),
   parseDottedOrder: vi.fn(),
