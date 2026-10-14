@@ -1,8 +1,6 @@
 import { Client } from "langsmith";
-import type { Config } from "./config.js";
-
-/** Stops a slow destination from hanging the command. */
-export const LOOKUP_TIMEOUT_MS = 4_000;
+import { LOOKUP_TIMEOUT_MS } from "./constants.js";
+import type { Config } from "./types.js";
 
 /**
  * OSC 8 hyperlink keeping a wrapped URL clickable. The URL is its own label, so

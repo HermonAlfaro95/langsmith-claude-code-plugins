@@ -1,7 +1,9 @@
+import { COMMON_BOOLEAN_SETTINGS } from "./shared-config.js";
+
 const USER_PROMPT_TURN_NAME = "Claude Code Turn";
 const ASSISTANT_RUN_NAME = "Claude";
 
-/** The single source of truth for the hook list; `hooks/hooks.json` is asserted against it. */
+/** `hooks/hooks.json` is tested against this list. */
 const HOOK_EVENT_NAMES = [
   "UserPromptSubmit",
   "PreToolUse",
@@ -14,12 +16,10 @@ const HOOK_EVENT_NAMES = [
   "SessionEnd",
 ] as const;
 
-type HookEventName = (typeof HOOK_EVENT_NAMES)[number];
-
-/** Present on every Cursor hook payload and never sent by Claude Code. */
+/** Only Cursor sends this, so it marks a Cursor payload. */
 const CURSOR_VERSION_FIELD = "cursor_version";
 
-/** Cleared before running git, since each one answers for somewhere else. */
+/** Cleared before running git so it looks at the session's own folder. */
 const GIT_LOCATION_ENV_KEYS = [
   "GIT_DIR",
   "GIT_WORK_TREE",
@@ -28,7 +28,7 @@ const GIT_LOCATION_ENV_KEYS = [
   "GIT_CEILING_DIRECTORIES",
 ];
 
-/** The parenthetical matters, since a broken submodule pointer fails with "not a git repository: <gitdir>" inside a good one. */
+/** Kept exact since a broken submodule prints a similar error inside a real repo. */
 const NOT_A_REPOSITORY = /not a git repository \(or any of the parent directories\)/i;
 
 const TOOL_PATH_INPUT_KEYS = ["file_path", "notebook_path", "path", "cwd"] as const;
@@ -51,52 +51,45 @@ const TURN_REPOSITORY_KEYS = [
 
 const REPOSITORY_METADATA_KEYS = [...TURN_REPOSITORY_KEYS, "ls_attribution_identifier"] as const;
 
-/** A symbol, since metadata travels as plain JSON and this must never reach LangSmith. */
+/** A symbol so it is never serialized and sent to LangSmith. */
 const PINNED_REPOSITORY_KEYS = Symbol("pinned repository metadata keys");
 
 const NO_PINNED_KEYS: ReadonlySet<string> = new Set();
-/** Directory of per-session upload queues, kept beside the state file. */
 const QUEUE_DIR_NAME = "langsmith_queue";
 const QUEUE_FILE_SUFFIX = ".queue.json";
 
-/** Anything outside this set is replaced, so a session id can never escape its own folder. */
+/** Replaced so a session id can't escape its folder. */
 const QUEUE_SESSION_UNSAFE_CHARS = /[^\w.-]/g;
 
-/** A half-written entry carries this instead, so a reader never sees it. */
+/** Half-written files use these so readers never see them. */
 const QUEUE_TEMP_SUFFIX = ".queue.tmp";
 
-/** The same guard for the state file, which readers load without taking the lock. */
 const STATE_TEMP_SUFFIX = ".state.tmp";
 
-/** A lock is staged under this and linked into place, so it never exists without its owner's pid. */
+/** Staged then linked so a lock always carries its owner's pid. */
 const LOCK_STAGING_SUFFIX = ".lock.staging";
 
-/** Owner-only, since what the plugin keeps beside the state file holds the same tool input and output the trace does. */
+/** Owner-only since these files hold trace content. */
 const PRIVATE_DIR_MODE = 0o700;
 const PRIVATE_FILE_MODE = 0o600;
 
-/** Enough of the hashed destination to tell two LangSmith accounts apart on disk. */
 const QUEUE_ORIGIN_LENGTH = 12;
 
-/** Zero-padding that keeps entry names sorting by time well past the year 9999. */
+/** Pads entry names so they sort by time. */
 const QUEUE_ID_TIME_WIDTH = 16;
 
-/** Oldest entries are dropped past this, so a never-flushed queue cannot grow forever. */
 const QUEUE_MAX_ENTRIES = 500;
 
-/** An entry that fails this many uploads is dropped rather than retried forever. */
 const QUEUE_MAX_ATTEMPTS = 5;
 
-/** LangSmith rejects a run that started before this, and the whole batch with it. */
+/** LangSmith rejects a batch holding a run older than this. */
 const QUEUE_RUN_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
-/** Another session's folder is only flushed once its oldest record is this old, which proves no live turn is still writing to it. */
+/** Another session's queue is only flushed once this quiet. */
 const FOREIGN_QUEUE_MIN_RECORD_AGE_MS = 2 * 60 * 60 * 1000;
 
-/** An empty folder is only removed once untouched this long, so a session that just created one keeps it. */
 const EMPTY_QUEUE_MIN_IDLE_MS = 2 * 60 * 60 * 1000;
 
-/** Argument that runs the detached queue flusher instead of a hook handler. */
 const FLUSH_QUEUE_ARG = "--flush-queue";
 
 const GH_LOGIN_COMMAND = "gh";
@@ -127,12 +120,6 @@ const UPDATE_ALREADY_RECEIVED_STATUS = 409;
 
 const RECORDED_RUN_FALLBACK_TYPE = "tool";
 
-const GIT_MARKER = {
-  repositoryRoot: "repository root",
-  onlyGitCanSay: "only git can say",
-  nothingHere: "nothing here",
-} as const;
-
 const TURN_RECORD_LINE = {
   run: "run",
   closed: "closed",
@@ -140,7 +127,33 @@ const TURN_RECORD_LINE = {
   reconciled: "fixed",
 } as const;
 
+const BOOLEAN_SETTINGS = {
+  enabled: { env: "TRACE_TO_LANGSMITH", ...COMMON_BOOLEAN_SETTINGS.enabled },
+  defaultMuted: { env: "CC_LANGSMITH_DEFAULT_MUTED", ...COMMON_BOOLEAN_SETTINGS.defaultMuted },
+} as const;
+
+const MAX_LOG_BYTES = 5 * 1024 * 1024; // 5 MB
+
+const LOOKUP_TIMEOUT_MS = 4_000;
+
+/** Larger transcripts are streamed instead of read whole. */
+const MAX_FULL_READ_BYTES = 50 * 1024 * 1024; // 50 MB
+
+const WORKFLOW_TOOL_NAME = "Workflow";
+
+const WORKFLOW_SUBAGENT_TYPE = "workflow-subagent";
+
+/** A killed subagent never fires SubagentStop, so other statuses count as completed. */
+const KILLED_NOTIFICATION_STATUS = "killed";
+
 export {
+  BOOLEAN_SETTINGS,
+  MAX_LOG_BYTES,
+  LOOKUP_TIMEOUT_MS,
+  MAX_FULL_READ_BYTES,
+  WORKFLOW_TOOL_NAME,
+  WORKFLOW_SUBAGENT_TYPE,
+  KILLED_NOTIFICATION_STATUS,
   USER_PROMPT_TURN_NAME,
   ASSISTANT_RUN_NAME,
   HOOK_EVENT_NAMES,
@@ -150,7 +163,6 @@ export {
   TOOL_PATH_INPUT_KEYS,
   GIT_DIRECTORY_NAME,
   GIT_MARKERS,
-  TURN_REPOSITORY_KEYS,
   REPOSITORY_METADATA_KEYS,
   REPOSITORY_NAME_KEY,
   ATTRIBUTION_IDENTIFIER_KEY,
@@ -160,7 +172,6 @@ export {
   TURN_RECORD_MAX_BYTES,
   TURN_RECORD_LINE,
   RECORDED_RUN_FALLBACK_TYPE,
-  GIT_MARKER,
   PINNED_REPOSITORY_KEYS,
   NO_PINNED_KEYS,
   GH_LOGIN_COMMAND,
@@ -188,4 +199,3 @@ export {
   EMPTY_QUEUE_MIN_IDLE_MS,
   FLUSH_QUEUE_ARG,
 };
-export type { HookEventName };

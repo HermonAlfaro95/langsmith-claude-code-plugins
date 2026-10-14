@@ -19,16 +19,7 @@ import { readStdin } from "../utils/stdin.js";
 import { USER_PROMPT_TURN_NAME } from "../constants.js";
 import { createRunTree } from "../privacy.js";
 import { codingAgentMetadata } from "../metadata.js";
-
-interface StopFailureHookInput {
-  session_id: string;
-  transcript_path: string;
-  cwd: string;
-  hook_event_name: "StopFailure";
-  error: string;
-  error_details?: string;
-  last_assistant_message?: string;
-}
+import type { StopFailureHookInput } from "../types.js";
 
 export async function main(): Promise<void> {
   const input: StopFailureHookInput = await readStdin();

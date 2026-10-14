@@ -10,7 +10,18 @@ import { resolveTurnTracingMode } from "./tracing-mode.js";
 import { Client, RunTree, RunTreeConfig, uuid7FromTime } from "langsmith";
 import { createSecretAnonymizer } from "langsmith/anonymizer";
 import type { StringNodeRule } from "langsmith/anonymizer";
-import type { Turn, ContentBlock, Usage, OpenTurn, SessionState, TracingMode } from "./types.js";
+import type {
+  Turn,
+  ContentBlock,
+  Usage,
+  OpenTurn,
+  SessionState,
+  TracingMode,
+  PendingSubagent,
+  TaskRunEntry,
+  TraceTurnOptions,
+  TurnRunIdentity,
+} from "./types.js";
 import {
   readTranscript,
   groupIntoTurns,
@@ -32,7 +43,6 @@ import {
 import { attributionFiller } from "./reconcile.js";
 import { recordDelivered, recordRun } from "./turn-record.js";
 import type { TurnRecordTarget } from "./types.js";
-import type { LSAgentType } from "./metadata.js";
 
 // ─── Client setup ───────────────────────────────────────────────────────────
 
@@ -156,42 +166,6 @@ function buildUsageMetadata(usage: Usage) {
 }
 
 // ─── Run creation ───────────────────────────────────────────────────────────
-
-/**
- * Create and submit LangSmith runs for a single Turn.
- *
- * Hierarchy:
- *   Turn (chain) - created by UserPromptSubmit or here if standalone
- *   ├── Assistant (llm)
- *   ├── ToolA (tool)
- *   ├── ToolB (tool)      ← tools are siblings of assistant, children of turn
- *   ├── Assistant (llm)
- *   └── ToolC (tool)
- */
-export interface TraceTurnOptions {
-  tracing?: TracingMode;
-  toolTracingModes?: Record<string, TracingMode>;
-  turn: Turn;
-  sessionId: string;
-  turnNum: number;
-  project: string;
-  parentRunId?: string;
-  existingTaskRunMap?: Record<string, TaskRunEntry>;
-  /** tool_use_ids already traced by PostToolUse — skip creating runs for these */
-  tracedToolUseIds?: Set<string>;
-  traceId?: string;
-  parentDottedOrder?: string;
-  /** Base coding-agent-v1 metadata (config base + user env metadata) merged onto every run. */
-  customMetadata?: Record<string, unknown>;
-  /** Claude Code CLI version → `ls_agent_runtime_version`. */
-  runtimeVersion?: string;
-  /** Permission mode → `approval_policy` (stamped on root/standalone turn runs only). */
-  approvalPolicy?: string;
-  /** Role stamped on this turn and each of its child runs. */
-  agentType?: LSAgentType;
-  record?: TurnRecordTarget;
-  hookCwd?: string;
-}
 
 /**
  * Trace a turn to LangSmith.
@@ -543,23 +517,6 @@ export async function traceTurn(options: TraceTurnOptions): Promise<Record<strin
 
 // ─── Turn run completion ─────────────────────────────────────────────────────
 
-/** Identity + metadata needed to patch a root "Turn" run closed. */
-export interface TurnRunIdentity {
-  tracing?: TracingMode;
-  sessionId: string;
-  project: string;
-  runId: string;
-  traceId?: string;
-  dottedOrder?: string;
-  parentRunId?: string;
-  startTime?: string;
-  turnId?: string;
-  turnNumber?: number;
-  runtimeVersion?: string;
-  approvalPolicy?: string;
-  customMetadata?: Record<string, unknown>;
-}
-
 /**
  * Patch a root "Turn" run closed — the single place every hook funnels through
  * to finalize a turn. `result` decides success vs. force-close: a
@@ -662,7 +619,7 @@ export async function completeTurnRun(options: {
 }
 
 /** Force-close a turn's root run with an error/status (e.g. session ended). */
-export async function closeTurnRun(id: TurnRunIdentity, error: string): Promise<void> {
+async function closeTurnRun(id: TurnRunIdentity, error: string): Promise<void> {
   await patchTurnRun(id, { error });
 }
 
@@ -838,30 +795,6 @@ export async function closeInterruptedTurn(options: {
 }
 
 // ─── Subagent tracing ────────────────────────────────────────────────────────
-
-export interface PendingSubagent {
-  agent_id: string;
-  agent_type: string;
-  agent_transcript_path: string;
-  session_id: string;
-}
-
-export interface TaskRunEntry {
-  tracing?: TracingMode;
-  run_id: string;
-  dotted_order: string;
-  deferred?: Record<string, unknown>;
-  /** Subagent type, recorded by SubagentStop; used when closing the Agent run. */
-  agent_type?: string;
-  /** True once SubagentStop has processed this async subagent (the join's
-   *  subagent-side "done" marker, replacing the former open_agent_runs map). */
-  subagent_done?: boolean;
-  /** For dynamic Workflow runs: the workflow run_id (`wf_…`) used to correlate
-   *  `workflow-subagent` stage SubagentStops (which carry it in their path). */
-  workflow_run_id?: string;
-  /** True when this entry is a Workflow tool run — names the run "Workflow". */
-  is_workflow?: boolean;
-}
 
 /**
  * Trace pending subagents queued by SubagentStop.

@@ -27,14 +27,7 @@ import { startQueueFlusher } from "../utils/detach.js";
 import { isPayloadForHook } from "../utils/harness.js";
 import { readStdin } from "../utils/stdin.js";
 import { readRuntimeVersion } from "../transcript.js";
-
-interface SessionEndHookInput {
-  session_id: string;
-  transcript_path: string;
-  cwd: string;
-  hook_event_name: "SessionEnd";
-  reason: string;
-}
+import type { SessionEndHookInput } from "../types.js";
 
 export async function main(): Promise<void> {
   const input: SessionEndHookInput = await readStdin();

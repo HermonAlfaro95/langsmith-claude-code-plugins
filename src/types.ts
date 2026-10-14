@@ -2,10 +2,20 @@
  * Types for Claude Code hook inputs and JSONL transcript messages.
  */
 
-import type { RunTree } from "langsmith";
-import type { GIT_MARKERS, PINNED_REPOSITORY_KEYS, TURN_RECORD_LINE } from "./constants.js";
+import type { RunTree, RunTreeConfig } from "langsmith";
+import type { StringNodeRule } from "langsmith/anonymizer";
+import type {
+  BOOLEAN_SETTINGS,
+  HOOK_EVENT_NAMES,
+  GIT_MARKERS,
+  PINNED_REPOSITORY_KEYS,
+  TURN_RECORD_LINE,
+} from "./constants.js";
+import type { LSAgentType } from "./metadata.js";
 
 export type TracingMode = "full" | "metadata";
+
+export type HookEventName = (typeof HOOK_EVENT_NAMES)[number];
 
 // ─── Hook Input Types ───────────────────────────────────────────────────────
 
@@ -15,7 +25,7 @@ export interface HookEventPayload {
 }
 
 /** Common fields present in all hook inputs (delivered via stdin JSON). */
-export interface HookInputBase {
+interface HookInputBase {
   session_id: string;
   transcript_path: string;
   cwd: string;
@@ -338,6 +348,21 @@ export interface TracingState {
   [sessionId: string]: SessionState;
 }
 
+// ─── Standalone Binary ──────────────────────────────────────────────────────
+
+export interface GhLoginMarker {
+  failed: string;
+}
+
+// ─── Test Fixtures ──────────────────────────────────────────────────────────
+
+export type FakeRunVerdict = { status: number; body?: string } | "ignore" | undefined;
+
+export interface FakeLangSmithRules {
+  rejects?(body: string): boolean;
+  rejectsRun?(wire: { action: "post" | "patch"; run: Record<string, any> }): FakeRunVerdict;
+}
+
 // ─── Upload queue ───────────────────────────────────────────────────────────
 
 /** Everything an upload depends on beyond the run itself, which decides where it may be sent. */
@@ -400,33 +425,176 @@ export interface TurnRecord {
   fixed: Set<string>;
 }
 
-// ─── Standalone Binary ──────────────────────────────────────────────────────
-
-export interface HookCommand {
-  type: string;
-  command: string;
+export interface Config {
+  /** Resolved from env, then project config, then user config. */
+  enabled: boolean;
+  /** For threads with no preference of their own. */
+  defaultMuted: boolean;
+  apiKey: string;
+  project: string;
+  apiBaseUrl: string;
+  stateFilePath: string;
+  debug: boolean;
+  /** Existing run to nest every trace under. */
+  parentDottedOrder?: string;
+  replicas?: RunTreeConfig["replicas"];
+  /** Added to every run, including CC_LANGSMITH_METADATA. */
+  customMetadata?: Record<string, unknown>;
+  redact: boolean;
+  /** From CC_LANGSMITH_REDACT_EXTRA or the config file. */
+  redactExtraRules?: StringNodeRule[];
 }
 
-export interface HookGroup {
-  hooks: HookCommand[];
+export type BooleanSetting = keyof typeof BOOLEAN_SETTINGS;
+
+/** Assistant and tool runs are siblings under the turn run. */
+export interface TraceTurnOptions {
+  tracing?: TracingMode;
+  toolTracingModes?: Record<string, TracingMode>;
+  turn: Turn;
+  sessionId: string;
+  turnNum: number;
+  project: string;
+  parentRunId?: string;
+  existingTaskRunMap?: Record<string, TaskRunEntry>;
+  /** Already traced by PostToolUse, so skipped. */
+  tracedToolUseIds?: Set<string>;
+  traceId?: string;
+  parentDottedOrder?: string;
+  customMetadata?: Record<string, unknown>;
+  /** Sent as `ls_agent_runtime_version`. */
+  runtimeVersion?: string;
+  /** Sent as `approval_policy` on the turn run only. */
+  approvalPolicy?: string;
+  agentType?: LSAgentType;
+  record?: TurnRecordTarget;
+  hookCwd?: string;
 }
 
-export type HooksManifest = Record<string, HookGroup[]>;
-
-export interface SettingsFile {
-  hooks?: HooksManifest;
-  [key: string]: unknown;
+/** What it takes to close a turn run. */
+export interface TurnRunIdentity {
+  tracing?: TracingMode;
+  sessionId: string;
+  project: string;
+  runId: string;
+  traceId?: string;
+  dottedOrder?: string;
+  parentRunId?: string;
+  startTime?: string;
+  turnId?: string;
+  turnNumber?: number;
+  runtimeVersion?: string;
+  approvalPolicy?: string;
+  customMetadata?: Record<string, unknown>;
 }
 
-export interface GhLoginMarker {
-  failed: string;
+export interface PendingSubagent {
+  agent_id: string;
+  agent_type: string;
+  agent_transcript_path: string;
+  session_id: string;
 }
 
-// ─── Test Fixtures ──────────────────────────────────────────────────────────
+export interface TaskRunEntry {
+  tracing?: TracingMode;
+  run_id: string;
+  dotted_order: string;
+  deferred?: Record<string, unknown>;
+  /** Set by SubagentStop to close the Agent run. */
+  agent_type?: string;
+  /** Set once SubagentStop has handled this background subagent. */
+  subagent_done?: boolean;
+  /** Matches workflow stage SubagentStops, which carry it in their path. */
+  workflow_run_id?: string;
+  is_workflow?: boolean;
+}
 
-export type FakeRunVerdict = { status: number; body?: string } | "ignore" | undefined;
+/** Trace context of the turn that launched a background run. */
+export interface LaunchingTurn {
+  tracing?: TracingMode;
+  run_id: string;
+  trace_id?: string;
+  dotted_order?: string;
+  parent_run_id?: string;
+  start_time?: string;
+  turn_number?: number;
+  runtime_version?: string;
+  approval_policy?: string;
+}
 
-export interface FakeLangSmithRules {
-  rejects?(body: string): boolean;
-  rejectsRun?(wire: { action: "post" | "patch"; run: Record<string, any> }): FakeRunVerdict;
+export interface WorkflowLaunch {
+  /** The completion notification refers to it. */
+  taskId: string;
+  /** Appears in each stage's transcript path. */
+  runId: string;
+  workflowName?: string;
+}
+
+export interface PreToolUseHookInput {
+  session_id: string;
+  cwd: string;
+  hook_event_name: "PreToolUse";
+  tool_use_id: string;
+  tool_name: string;
+}
+
+export interface PreCompactHookInput {
+  session_id: string;
+  transcript_path: string;
+  cwd: string;
+  hook_event_name: "PreCompact";
+  trigger: "manual" | "auto";
+  custom_instructions: string;
+}
+
+export interface StopFailureHookInput {
+  session_id: string;
+  transcript_path: string;
+  cwd: string;
+  hook_event_name: "StopFailure";
+  error: string;
+  error_details?: string;
+  last_assistant_message?: string;
+}
+
+export interface PostCompactHookInput {
+  session_id: string;
+  transcript_path: string;
+  cwd: string;
+  hook_event_name: "PostCompact";
+  trigger: "manual" | "auto";
+  compact_summary: string;
+}
+
+export interface PostToolUseHookInput {
+  session_id: string;
+  transcript_path: string;
+  cwd: string;
+  permission_mode?: string;
+  hook_event_name: "PostToolUse";
+  tool_name: string;
+  tool_input: Record<string, unknown>;
+  tool_response: Record<string, unknown>;
+  tool_use_id: string;
+  agent_id?: string;
+  agent_type?: string;
+}
+
+export interface SessionEndHookInput {
+  session_id: string;
+  transcript_path: string;
+  cwd: string;
+  hook_event_name: "SessionEnd";
+  reason: string;
+}
+
+export interface UserPromptSubmitHookInput {
+  session_id: string;
+  transcript_path: string;
+  cwd: string;
+  permission_mode?: string;
+  hook_event_name: "UserPromptSubmit";
+  prompt: string;
+  agent_id?: string;
+  agent_type?: string;
 }

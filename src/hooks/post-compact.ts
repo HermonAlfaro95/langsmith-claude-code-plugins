@@ -15,15 +15,7 @@ import { isPayloadForHook } from "../utils/harness.js";
 import { readStdin } from "../utils/stdin.js";
 import { createRunTree } from "../privacy.js";
 import { codingAgentMetadata } from "../metadata.js";
-
-interface PostCompactHookInput {
-  session_id: string;
-  transcript_path: string;
-  cwd: string;
-  hook_event_name: "PostCompact";
-  trigger: "manual" | "auto";
-  compact_summary: string;
-}
+import type { PostCompactHookInput } from "../types.js";
 
 export async function main(): Promise<void> {
   const input: PostCompactHookInput = await readStdin();

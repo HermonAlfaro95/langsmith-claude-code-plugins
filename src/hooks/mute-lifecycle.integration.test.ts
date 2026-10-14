@@ -2,8 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { HookEventName } from "../constants.js";
-import type { TracingMode, TracingState, TranscriptMessage } from "../types.js";
+import type { HookEventName, TracingMode, TracingState, TranscriptMessage } from "../types.js";
 import { tracingPolicyPath } from "../tracing-policy.js";
 
 // Exercise the real hooks, grouping, run builders, background registration and
