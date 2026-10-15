@@ -1,5 +1,7 @@
-import { buildCodingAgentMetadata } from "@langchain/plugins-base/metadata";
-import type { CodingAgentRunType } from "@langchain/plugins-base/metadata";
+import type {
+  CodingAgentMetadataOptions,
+  CodingAgentRunType,
+} from "@langchain/plugins-base/metadata";
 import { LS_INTEGRATION } from "./constants.js";
 import { LS_INTEGRATION_VERSION } from "./integration-version.js";
 import type { ClaudeMetadataOptions } from "./types.js";
@@ -10,15 +12,15 @@ function runTypeOf(options: ClaudeMetadataOptions): CodingAgentRunType {
   return options.modelName === undefined ? "root" : "llm";
 }
 
-export function codingAgentMetadata(options: ClaudeMetadataOptions): Record<string, unknown> {
+export function codingAgentMetadata(options: ClaudeMetadataOptions): CodingAgentMetadataOptions {
   const { sessionId, ...rest } = options;
-  return buildCodingAgentMetadata({
+  return {
     ...rest,
     runType: runTypeOf(options),
     integration: LS_INTEGRATION,
     integrationVersion: LS_INTEGRATION_VERSION,
     threadId: sessionId,
-  });
+  };
 }
 
 /**

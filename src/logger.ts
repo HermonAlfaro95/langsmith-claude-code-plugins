@@ -3,11 +3,13 @@
  */
 
 import { appendFileSync, mkdirSync, statSync, renameSync } from "node:fs";
-import { dirname } from "node:path";
-import { MAX_LOG_BYTES } from "./constants.js";
+import { dirname, join } from "node:path";
+import { MAX_LOG_BYTES, WORKER_LOG_NAME } from "./constants.js";
 
-const LOG_FILE =
+export const LOG_FILE =
   process.env.CC_LANGSMITH_LOG_FILE ?? `${process.env.HOME ?? ""}/.claude/state/hook.log`;
+
+export const WORKER_LOG_FILE = join(dirname(LOG_FILE), WORKER_LOG_NAME);
 
 let debugEnabled = false;
 

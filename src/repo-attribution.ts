@@ -13,12 +13,7 @@ import {
   rootFromGitMarker,
 } from "@langchain/plugins-base/git";
 import { pinnedRepositoryKeys, resolveStateFilePath } from "./config.js";
-import {
-  ATTRIBUTION_IDENTIFIER_KEY,
-  GH_LOGIN_MARKER_FILE,
-  REPOSITORY_METADATA_KEYS,
-  REPOSITORY_NAME_KEY,
-} from "./constants.js";
+import { GH_LOGIN_MARKER_FILE, REPOSITORY_METADATA_KEYS } from "./constants.js";
 import { toolPathFromInput } from "./repo-attribution-paths.js";
 import type { RepositoryAttribution, ToolOrigin, ToolPathLookup } from "./types.js";
 
@@ -154,9 +149,6 @@ export function repoScopedMetadata(
   );
 }
 
-export const awaitsTheTurn = (metadata: Record<string, unknown> | undefined): boolean =>
-  !metadata?.[REPOSITORY_NAME_KEY] || !metadata?.[ATTRIBUTION_IDENTIFIER_KEY];
-
 export function toolOrigin(toolInput: unknown, sessionCwd?: string): ToolOrigin {
   return { cwd: sessionCwd, ...toolPathFromInput(toolInput, sessionCwd) };
 }
@@ -182,19 +174,6 @@ export function settledRepositoryMetadata(
     origin.cwd,
     pinned,
   );
-}
-
-/** The settled run to upload, left open when only the turn can say where it worked. */
-export function settledRunConfig(
-  run: Record<string, unknown>,
-  origin: ToolOrigin,
-): { run: Record<string, unknown>; open: boolean } {
-  const extra = run.extra as { metadata?: Record<string, unknown> } | undefined;
-  const metadata = settledRepositoryMetadata(extra?.metadata, origin) ?? extra?.metadata ?? {};
-  const settled: Record<string, unknown> = { ...run, extra: { ...extra, metadata } };
-  const open = awaitsTheTurn(metadata);
-  if (open) delete settled.end_time;
-  return { run: settled, open };
 }
 
 export function turnScopedMetadata(

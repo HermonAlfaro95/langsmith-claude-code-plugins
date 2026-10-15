@@ -10,14 +10,13 @@
 
 import { resolveTurnTracingMode } from "../tracing-mode.js";
 import { error, debug } from "../logger.js";
-import { initTracing, flushPendingTraces } from "../langsmith.js";
+import { captureRun, initTracing } from "../tracing-engine.js";
 import { loadState, atomicUpdateState, getSessionState } from "../state.js";
 import { initHook } from "../utils/hook-init.js";
 import { isPayloadForHook } from "../utils/harness.js";
 import { readStdin } from "../utils/stdin.js";
 
 import { USER_PROMPT_TURN_NAME } from "../constants.js";
-import { createRunTree } from "../privacy.js";
 import { codingAgentMetadata } from "../metadata.js";
 import type { StopFailureHookInput } from "../types.js";
 
@@ -30,13 +29,7 @@ export async function main(): Promise<void> {
 
   debug(`StopFailure hook: session=${input.session_id}, error=${input.error}`);
 
-  const client = initTracing(
-    config.apiKey,
-    config.apiBaseUrl,
-    config.replicas,
-    config.redact,
-    config.redactExtraRules,
-  );
+  initTracing(config, input.cwd, input.session_id);
 
   const state = loadState(config.stateFilePath);
   const sessionState = getSessionState(state, input.session_id);
@@ -49,30 +42,25 @@ export async function main(): Promise<void> {
   const errorMessage = input.error_details ? `${input.error}: ${input.error_details}` : input.error;
 
   try {
-    const runTree = createRunTree(
+    await captureRun(
       {
-        client,
-        replicas: config.replicas,
         name: USER_PROMPT_TURN_NAME,
         run_type: "chain",
-        project_name: config.project,
         id: sessionState.current_turn_run_id,
-        trace_id: sessionState.current_trace_id,
-        dotted_order: sessionState.current_dotted_order,
+        trace_id: sessionState.current_trace_id!,
+        dotted_order: sessionState.current_dotted_order!,
         parent_run_id: sessionState.current_parent_run_id,
-        start_time: sessionState.current_turn_start,
+        start_time: sessionState.current_turn_start!,
         end_time: new Date().toISOString(),
         error: errorMessage,
-        extra: {
-          metadata: codingAgentMetadata({
-            sessionId: input.session_id,
-            base: config.customMetadata,
-            turnNumber: sessionState.current_turn_number,
-            runtimeVersion: sessionState.runtime_version,
-            approvalPolicy: sessionState.approval_policy,
-            agentType: "root",
-          }),
-        },
+        metadata: codingAgentMetadata({
+          sessionId: input.session_id,
+          base: config.customMetadata,
+          turnNumber: sessionState.current_turn_number,
+          runtimeVersion: sessionState.runtime_version,
+          approvalPolicy: sessionState.approval_policy,
+          agentType: "root",
+        }),
       },
       resolveTurnTracingMode(
         config,
@@ -82,8 +70,9 @@ export async function main(): Promise<void> {
           ? sessionState.open_turns?.[sessionState.current_turn_run_id]?.tracing
           : undefined,
       ),
+      sessionState.current_turn_run_id,
+      "patch",
     );
-    await runTree.patchRun({ excludeInputs: true });
     debug(`Closed turn run ${sessionState.current_turn_run_id} with error: ${errorMessage}`);
   } catch (err) {
     error(`Failed to close turn run on StopFailure: ${err}`);
@@ -103,6 +92,4 @@ export async function main(): Promise<void> {
       },
     };
   });
-
-  await flushPendingTraces();
 }

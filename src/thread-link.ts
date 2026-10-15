@@ -1,6 +1,6 @@
 import { Client } from "langsmith";
-import { LOOKUP_TIMEOUT_MS } from "./constants.js";
 import type { Config } from "./types.js";
+import { LOOKUP_TIMEOUT_MS } from "./constants.js";
 
 /**
  * OSC 8 hyperlink keeping a wrapped URL clickable. The URL is its own label, so

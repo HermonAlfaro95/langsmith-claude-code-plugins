@@ -31,6 +31,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm exec vitest run src/config.test.ts
       - run: pnpm test:hooks
       - run: pnpm test:paths
       - if: runner.os == 'macOS'
@@ -47,6 +48,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint:code
+      - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
       - name: Check both plugin bundles are up to date
@@ -81,4 +83,4 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: git diff --exit-code HEAD -- bundle/ plugins/langsmith-gateway/bundle/
-      - run: node .github/scripts/test-engine.mjs src/state.test.ts src/utils/file-lock.test.ts
+      - run: node .github/scripts/test-engine.mjs src/state.test.ts src/tracing-engine.test.ts
