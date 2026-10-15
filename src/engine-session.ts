@@ -10,7 +10,7 @@ import {
 } from "./constants.js";
 import { writerOptions } from "./engine-writer.js";
 import { settleToolRuns } from "./engine-tool-settlement.js";
-import { WORKER_LOG_FILE, warn } from "./logger.js";
+import { warn } from "./logger.js";
 import type { ClaudeTracingSession, Config } from "./types.js";
 
 export function openSession(
@@ -20,14 +20,14 @@ export function openSession(
   startupWaitMs?: number,
 ): ClaudeTracingSession {
   const writer = writerOptions(config);
+  const storageRoot = join(dirname(config.stateFilePath), ENGINE_STORAGE_DIR_NAME);
   const context = openPluginSession({
-    storageRoot: join(dirname(config.stateFilePath), ENGINE_STORAGE_DIR_NAME),
+    storageRoot,
     integration: LS_INTEGRATION,
     sessionId,
     writer,
     currentWriter: () => writerOptions(loadConfig({ cwd, deferGit: true })),
-    scheduleWake: (id) =>
-      launchDetachedWorker([ENGINE_WORKER_ARG, cwd, id], { logFile: WORKER_LOG_FILE }),
+    scheduleWake: (id) => launchDetachedWorker([ENGINE_WORKER_ARG, cwd, id], { storageRoot }),
     reconstruct: settleToolRuns,
     startupWaitMs,
     onRecoveryReport: (report) => {

@@ -107,8 +107,6 @@ Options:
   --help, -h     Show this help and exit
   --version, -v  Print the installed version and exit`;
 
-const WORKER_LOG_NAME = "worker.log";
-
 const MAX_LOG_BYTES = 5 * 1024 * 1024; // 5 MB
 
 const LOOKUP_TIMEOUT_MS = 4_000;
@@ -166,7 +164,6 @@ export {
   TURN_RECORD_DIR_NAME,
   TURN_RECORD_LINE,
   USAGE_TEMPLATE,
-  WORKER_LOG_NAME,
   BOOLEAN_SETTINGS,
   MAX_LOG_BYTES,
   LOOKUP_TIMEOUT_MS,
