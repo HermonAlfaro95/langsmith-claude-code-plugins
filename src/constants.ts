@@ -123,7 +123,48 @@ const WORKFLOW_SUBAGENT_TYPE = "workflow-subagent";
 /** A killed subagent never fires SubagentStop, so other statuses count as completed. */
 const KILLED_NOTIFICATION_STATUS = "killed";
 
+/** Directory of per-session upload queues, kept beside the state file. */
+const QUEUE_DIR_NAME = "langsmith_queue";
+
+/** Enough of the hashed destination to tell two LangSmith accounts apart on disk. */
+const QUEUE_ORIGIN_LENGTH = 12;
+
+const TURN_RECORD_DIR_NAME = "langsmith_turns";
+
+const TURN_RECORD_LINE = {
+  run: "run",
+  closed: "closed",
+  delivered: "ok",
+  reconciled: "fixed",
+} as const;
+
+const LEGACY_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+const LEGACY_SWEEP_WARNING =
+  "file(s) the previous version left unreadable or half written, since after 6 hours they can never be uploaded";
+const LEGACY_EMPTY_FOLDER_IDLE_MS = 2 * 60 * 60 * 1000;
+const LEGACY_UUID = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
+const LEGACY_QUEUE_ID = `\\d{16}-${LEGACY_UUID}`;
+const LEGACY_QUEUE_FILE = new RegExp(`^${LEGACY_QUEUE_ID}\\.queue\\.json$`);
+const LEGACY_QUEUE_TEMP_FILE = new RegExp(
+  `^${LEGACY_QUEUE_ID}\\.queue\\.json\\.${LEGACY_UUID}\\.queue\\.tmp$`,
+);
+const LEGACY_TURN_FILE = new RegExp(`^${LEGACY_UUID}\\.turn\\.jsonl$`);
+const LEGACY_FLUSH_LOCK_FILE = new RegExp(
+  `^[\\w.-]+\\.flush\\.lock(\\.${LEGACY_UUID}\\.lock\\.staging)?$`,
+);
+
 export {
+  LEGACY_MAX_AGE_MS,
+  LEGACY_EMPTY_FOLDER_IDLE_MS,
+  LEGACY_SWEEP_WARNING,
+  LEGACY_FLUSH_LOCK_FILE,
+  LEGACY_QUEUE_FILE,
+  LEGACY_QUEUE_TEMP_FILE,
+  LEGACY_TURN_FILE,
+  QUEUE_DIR_NAME,
+  QUEUE_ORIGIN_LENGTH,
+  TURN_RECORD_DIR_NAME,
+  TURN_RECORD_LINE,
   USAGE_TEMPLATE,
   WORKER_LOG_NAME,
   BOOLEAN_SETTINGS,

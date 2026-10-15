@@ -9,7 +9,7 @@ import type {
   CodingAgentMetadataOptions,
 } from "@langchain/plugins-base/metadata";
 import type { PluginSession } from "@langchain/plugins-base/plugin";
-import type { TurnRecord } from "@langchain/plugins-base/tracing/settlement";
+import type { RecordedRun, TurnRecord } from "@langchain/plugins-base/tracing/settlement";
 import type { BOOLEAN_SETTINGS, HOOK_EVENT_NAMES, PINNED_REPOSITORY_KEYS } from "./constants.js";
 
 export type TracingMode = "full" | "metadata";
@@ -580,4 +580,49 @@ export type StatePatch = StatePatchEntry[];
 export interface PendingStatePatches {
   files: string[];
   patches: StatePatch[];
+}
+
+export interface LegacyQueueEntry {
+  tracing: TracingMode;
+  origin: string;
+  run: Omit<ClaudeRun, "metadata"> & { extra?: { metadata?: Record<string, unknown> } };
+  where?: ToolOrigin;
+}
+
+export interface LegacyRun {
+  sessionId: string;
+  file: string;
+  mode: TracingMode;
+  operation: RunOperation;
+  run: ClaudeRun;
+}
+
+export type LegacyFile = [sessionId: string, file: string];
+
+export interface LegacyScan {
+  runs: LegacyRun[];
+  settled: string[];
+  unreadable: string[];
+}
+
+export interface LegacyTurnLine {
+  k: string;
+  root?: boolean;
+  origin?: string;
+  id: string;
+  run?: RecordedRun;
+}
+
+export interface LegacyRunMetadata {
+  thread_id?: string;
+  ls_agent_type?: CodingAgentAgentType;
+  turn_id?: string;
+  turn_number?: number;
+  ls_agent_runtime_version?: string;
+  ls_integration_version?: string;
+  ls_subagent_id?: string;
+  ls_subagent_type?: string;
+  ls_skill_name?: string;
+  ls_model_name?: string;
+  usage_metadata?: Record<string, unknown>;
 }
