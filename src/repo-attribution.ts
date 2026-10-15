@@ -1,30 +1,39 @@
 // A session started in a central folder works across several repositories, so its working
 // directory says nothing about the repository a given tool call touched.
 
-import { isAbsolute } from "node:path";
+import { dirname, isAbsolute, join } from "node:path";
 import {
+  createGitHubLoginFallback,
   getGitUserName,
   getGitInfo,
   getRepoName,
   getRepoRoot,
   getRepoUrl,
-  pinnedRepositoryKeys,
-} from "./config.js";
+  nearestExistingDirectory,
+  rootFromGitMarker,
+} from "@langchain/plugins-base/git";
+import { pinnedRepositoryKeys, resolveStateFilePath } from "./config.js";
 import {
   ATTRIBUTION_IDENTIFIER_KEY,
+  GH_LOGIN_MARKER_FILE,
   REPOSITORY_METADATA_KEYS,
   REPOSITORY_NAME_KEY,
 } from "./constants.js";
-import {
-  nearestExistingDirectory,
-  rootFromGitMarker,
-  toolPathFromInput,
-} from "./repo-attribution-paths.js";
+import { toolPathFromInput } from "./repo-attribution-paths.js";
 import type { RepositoryAttribution, ToolOrigin, ToolPathLookup } from "./types.js";
 
 const rootByDirectory = new Map<string, string | null | undefined>();
 const attributionByRoot = new Map<string, RepositoryAttribution>();
 const identifierByRoot = new Map<string, RepositoryAttribution>();
+let githubLogin: (() => string | undefined) | undefined;
+
+function gitUserName(root: string): string | undefined {
+  const stateFile = resolveStateFilePath();
+  githubLogin ??= createGitHubLoginFallback({
+    markerPath: join(dirname(stateFile), GH_LOGIN_MARKER_FILE),
+  });
+  return getGitUserName(root, { githubLogin });
+}
 
 function rootForPath(path: string): string | null | undefined {
   const directory = nearestExistingDirectory(path);
@@ -63,7 +72,7 @@ function withoutRepositoryKeys(
 function identifierForRoot(root: string): RepositoryAttribution {
   const cached = identifierByRoot.get(root);
   if (cached) return cached;
-  const userName = getGitUserName(root);
+  const userName = gitUserName(root);
   const identifier: RepositoryAttribution = userName ? { ls_attribution_identifier: userName } : {};
   identifierByRoot.set(root, identifier);
   return identifier;
@@ -209,4 +218,5 @@ export function clearRepoAttributionCache(): void {
   rootByDirectory.clear();
   attributionByRoot.clear();
   identifierByRoot.clear();
+  githubLogin = undefined;
 }

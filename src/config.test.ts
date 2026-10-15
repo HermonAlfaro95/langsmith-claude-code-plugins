@@ -2,8 +2,8 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { loadConfig, parseRepoName } from "./config.js";
-import { execSync } from "node:child_process";
+import { loadConfig } from "./config.js";
+import { execFileSync } from "node:child_process";
 
 vi.mock("node:child_process", { spy: true });
 vi.mock("node:fs", { spy: true });
@@ -12,7 +12,7 @@ vi.mock("node:os", { spy: true });
 beforeEach(() => {
   vi.restoreAllMocks();
   vi.mocked(readFileSync).mockReset();
-  vi.mocked(execSync).mockReset();
+  vi.mocked(execFileSync).mockReset();
 });
 
 describe("loadConfig", () => {
@@ -69,7 +69,7 @@ describe("loadConfig", () => {
         join(tmpHome, ".claude", "langsmith.json"),
         join(tmpHome, ".langsmith-plugins.json"),
       ];
-      vi.mocked(execSync).mockReturnValue("");
+      vi.mocked(execFileSync).mockReturnValue("");
     });
 
     const settings = [
@@ -506,16 +506,6 @@ describe("loadConfig", () => {
       expect(config.customMetadata).toMatchObject({ local_username: expect.any(String) });
     });
 
-    it("ignores ~/.claude.json without a userID field", () => {
-      writeFileSync(join(tmpHome, ".claude.json"), JSON.stringify({ otherField: "x" }));
-      expect(loadConfig().customMetadata).not.toHaveProperty("anthropic_user_id");
-    });
-
-    it("handles malformed ~/.claude.json gracefully", () => {
-      writeFileSync(join(tmpHome, ".claude.json"), "not valid json");
-      expect(loadConfig().customMetadata).not.toHaveProperty("anthropic_user_id");
-    });
-
     it("ignores non-string userID", () => {
       writeFileSync(join(tmpHome, ".claude.json"), JSON.stringify({ userID: 12345 }));
       expect(loadConfig().customMetadata).not.toHaveProperty("anthropic_user_id");
@@ -537,13 +527,9 @@ describe("loadConfig", () => {
     });
   });
 
-  it.each([
-    ["github", "https://github.com/langchain-ai/example.git"],
-    ["gitlab", "https://gitlab.com/langchain-ai/example.git"],
-    ["bitbucket", "https://bitbucket.org/langchain-ai/example.git"],
-    ["devAzure", "https://dev.azure.com/langchain-ai/example.git"],
-  ])("inserts repository name into customMetadata for %s", (provider, url) => {
-    vi.mocked(execSync).mockImplementation(() => {
+  it("inserts the repository name into customMetadata beside the user's own fields", () => {
+    const url = "https://github.com/langchain-ai/example.git";
+    vi.mocked(execFileSync).mockImplementation(() => {
       return [["origin", url + " (fetch)"].join("\t"), ["origin", url + " (push)"].join("\t")].join(
         "\n",
       );
@@ -559,20 +545,13 @@ describe("loadConfig", () => {
       pr_url: "https://github.com/org/repo/pull/42",
       pr_author: "octocat",
       repository_name: "langchain-ai/example",
-      repository_provider: provider,
+      repository_provider: "github",
     });
   });
 
   describe("coding-agent-v1 contract metadata", () => {
-    it("includes the frozen identity literals and cwd", () => {
-      const config = loadConfig({ cwd });
-      expect(config.customMetadata).toMatchObject({
-        ls_agent_purpose: "coding",
-        ls_integration: "claude-code",
-        ls_agent_runtime: "Claude Code",
-        ls_trace_schema_version: "coding-agent-v1",
-        cwd,
-      });
+    it("includes the working directory", () => {
+      expect(loadConfig({ cwd }).customMetadata).toMatchObject({ cwd });
     });
 
     it("surfaces the hashed anthropic id as user_id (preferred) and keeps the compat alias", () => {
@@ -585,7 +564,8 @@ describe("loadConfig", () => {
     });
 
     it("derives repository_url + git_branch + git_commit_sha", () => {
-      vi.mocked(execSync).mockImplementation((command: string) => {
+      vi.mocked(execFileSync).mockImplementation((_file: string, args?: readonly string[]) => {
+        const command = args?.join(" ") ?? "";
         if (command.includes("remote -v")) {
           const url = "git@github.com:langchain-ai/example.git";
           return [`origin\t${url} (fetch)`, `origin\t${url} (push)`].join("\n");
@@ -602,35 +582,6 @@ describe("loadConfig", () => {
         git_branch: "feature/my-branch",
         git_commit_sha: "deadbeefcafe1234",
       });
-    });
-
-    it("omits git_branch for a detached HEAD", () => {
-      vi.mocked(execSync).mockImplementation((command: string) => {
-        if (command.includes("abbrev-ref")) return "HEAD\n";
-        if (command.includes("rev-parse HEAD")) return "deadbeef\n";
-        return "";
-      });
-      const config = loadConfig({ cwd: __dirname });
-      expect(config.customMetadata).not.toHaveProperty("git_branch");
-      expect(config.customMetadata).toMatchObject({ git_commit_sha: "deadbeef" });
-    });
-  });
-});
-
-describe("parseRepoName", () => {
-  it.each([
-    "https://username:password@github.com/langchain-ai/example.git",
-    "http://username:password@gitlab.com/langchain-ai/example.git",
-    "ssh://username:password@bitbucket.org/langchain-ai/example.git",
-    "ssh://username:password@github.com:2222/langchain-ai/example.git",
-  ])("excludes credentials from URL repository names: %s", (url) => {
-    expect(parseRepoName(url)?.name).toBe("langchain-ai/example");
-  });
-
-  it("parses SCP-style SSH remotes", () => {
-    expect(parseRepoName("git@github.com:langchain-ai/example.git")).toEqual({
-      provider: "github",
-      name: "langchain-ai/example",
     });
   });
 });

@@ -198,11 +198,11 @@ var require_p_finally = __commonJS({
       onFinally = onFinally || (() => {
       });
       return promise.then(
-        (val) => new Promise((resolve14) => {
-          resolve14(onFinally());
+        (val) => new Promise((resolve15) => {
+          resolve15(onFinally());
         }).then(() => val),
-        (err) => new Promise((resolve14) => {
-          resolve14(onFinally());
+        (err) => new Promise((resolve15) => {
+          resolve15(onFinally());
         }).then(() => {
           throw err;
         })
@@ -222,18 +222,18 @@ var require_p_timeout = __commonJS({
         this.name = "TimeoutError";
       }
     };
-    var pTimeout = (promise, milliseconds, fallback) => new Promise((resolve14, reject) => {
+    var pTimeout = (promise, milliseconds, fallback) => new Promise((resolve15, reject) => {
       if (typeof milliseconds !== "number" || milliseconds < 0) {
         throw new TypeError("Expected `milliseconds` to be a positive number");
       }
       if (milliseconds === Infinity) {
-        resolve14(promise);
+        resolve15(promise);
         return;
       }
       const timer = setTimeout(() => {
         if (typeof fallback === "function") {
           try {
-            resolve14(fallback());
+            resolve15(fallback());
           } catch (error2) {
             reject(error2);
           }
@@ -248,7 +248,7 @@ var require_p_timeout = __commonJS({
       }, milliseconds);
       pFinally(
         // eslint-disable-next-line promise/prefer-await-to-then
-        promise.then(resolve14, reject),
+        promise.then(resolve15, reject),
         () => {
           clearTimeout(timer);
         }
@@ -466,7 +466,7 @@ var require_dist = __commonJS({
       Adds a sync or async task to the queue. Always returns a promise.
       */
       async add(fn, options = {}) {
-        return new Promise((resolve14, reject) => {
+        return new Promise((resolve15, reject) => {
           const run = async () => {
             this._pendingCount++;
             this._intervalCount++;
@@ -477,7 +477,7 @@ var require_dist = __commonJS({
                 }
                 return void 0;
               });
-              resolve14(await operation);
+              resolve15(await operation);
             } catch (error2) {
               reject(error2);
             }
@@ -528,11 +528,11 @@ var require_dist = __commonJS({
         if (this._queue.size === 0) {
           return;
         }
-        return new Promise((resolve14) => {
+        return new Promise((resolve15) => {
           const existingResolve = this._resolveEmpty;
           this._resolveEmpty = () => {
             existingResolve();
-            resolve14();
+            resolve15();
           };
         });
       }
@@ -545,11 +545,11 @@ var require_dist = __commonJS({
         if (this._pendingCount === 0 && this._queue.size === 0) {
           return;
         }
-        return new Promise((resolve14) => {
+        return new Promise((resolve15) => {
           const existingResolve = this._resolveIdle;
           this._resolveIdle = () => {
             existingResolve();
-            resolve14();
+            resolve15();
           };
         });
       }
@@ -643,9 +643,6 @@ var binary = defineBinaryTarget({
   userAgent: "langsmith-claude-code",
   releasesApiOverrideEnvVar: "CC_LANGSMITH_RELEASES_API"
 });
-
-// dist/src/config.js
-import { readFileSync as readFileSync3 } from "node:fs";
 
 // node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/settings/constants.js
 var COMMON_BOOLEAN_SETTINGS = {
@@ -829,17 +826,22 @@ function toSdkReplicas(replicas2) {
   }));
 }
 
-// dist/src/config.js
-import { homedir as homedir2, userInfo } from "node:os";
-import { join as join3, resolve } from "node:path";
-
-// dist/src/logger.js
-import { appendFileSync, mkdirSync, statSync as statSync2, renameSync } from "node:fs";
-import { dirname } from "node:path";
-
 // dist/src/constants.js
 var USER_PROMPT_TURN_NAME = "Claude Code Turn";
 var ASSISTANT_RUN_NAME = "Claude";
+var LS_INTEGRATION = "claude-code";
+var METADATA_MODE_RUN_FIELDS = [
+  "client",
+  "id",
+  "name",
+  "run_type",
+  "project_name",
+  "start_time",
+  "end_time",
+  "parent_run_id",
+  "trace_id",
+  "dotted_order"
+];
 var HOOK_EVENT_NAMES = [
   "UserPromptSubmit",
   "PreToolUse",
@@ -852,21 +854,7 @@ var HOOK_EVENT_NAMES = [
   "SessionEnd"
 ];
 var CURSOR_VERSION_FIELD = "cursor_version";
-var GIT_LOCATION_ENV_KEYS = [
-  "GIT_DIR",
-  "GIT_WORK_TREE",
-  "GIT_COMMON_DIR",
-  "GIT_INDEX_FILE",
-  "GIT_CEILING_DIRECTORIES"
-];
-var NOT_A_REPOSITORY = /not a git repository \(or any of the parent directories\)/i;
 var TOOL_PATH_INPUT_KEYS = ["file_path", "notebook_path", "path", "cwd"];
-var GIT_DIRECTORY_NAME = ".git";
-var GIT_MARKERS = {
-  REPOSITORY_ROOT: "repository root",
-  ONLY_GIT_CAN_SAY: "only git can say",
-  NOTHING_HERE: "nothing here"
-};
 var TURN_REPOSITORY_KEYS = [
   "repository_name",
   "repository_provider",
@@ -906,14 +894,8 @@ var QUEUE_RUN_MAX_AGE_MS = 24 * 60 * 60 * 1e3;
 var FOREIGN_QUEUE_MIN_RECORD_AGE_MS = 2 * 60 * 60 * 1e3;
 var EMPTY_QUEUE_MIN_IDLE_MS = 2 * 60 * 60 * 1e3;
 var FLUSH_QUEUE_ARG = "--flush-queue";
-var GH_LOGIN_COMMAND = "gh";
-var GH_LOGIN_ARGUMENTS = ["api", "user", "--jq", ".login"];
-var GH_LOGIN_TIMEOUT_MS = 5e3;
-var GH_LOGIN_PATTERN = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
-var JQ_NULL_OUTPUT = "null";
 var STATE_FILE_DEFAULT = [".claude", "state", "langsmith_state.json"];
 var GH_LOGIN_MARKER_FILE = "langsmith_gh_login.json";
-var GH_LOGIN_RETRY_AFTER_MS = 24 * 60 * 60 * 1e3;
 var TURN_RECORD_DIR_NAME = "langsmith_turns";
 var TURN_RECORD_SUFFIX = ".turn.jsonl";
 var TURN_RECORD_MAX_BYTES = 8 * 1024 * 1024;
@@ -938,7 +920,12 @@ var WORKFLOW_TOOL_NAME = "Workflow";
 var WORKFLOW_SUBAGENT_TYPE = "workflow-subagent";
 var KILLED_NOTIFICATION_STATUS = "killed";
 
+// dist/src/integration-version.js
+var LS_INTEGRATION_VERSION = true ? "0.4.2" : process.env.CC_LANGSMITH_INTEGRATION_VERSION || void 0;
+
 // dist/src/logger.js
+import { appendFileSync, mkdirSync, statSync as statSync2, renameSync } from "node:fs";
+import { dirname } from "node:path";
 var LOG_FILE = process.env.CC_LANGSMITH_LOG_FILE ?? `${process.env.HOME ?? ""}/.claude/state/hook.log`;
 var debugEnabled = false;
 function initLogger(debug2) {
@@ -976,342 +963,6 @@ function debug(message) {
   if (debugEnabled) {
     write("DEBUG", message);
   }
-}
-
-// dist/src/config.js
-import { execSync } from "node:child_process";
-
-// dist/src/utils/gh-login.js
-import { execFileSync } from "node:child_process";
-import { mkdirSync as mkdirSync2, readFileSync as readFileSync2, renameSync as renameSync2, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { dirname as dirname2, join as join2 } from "node:path";
-function isLogin(printed) {
-  return printed !== JQ_NULL_OUTPUT && GH_LOGIN_PATTERN.test(printed);
-}
-function markerPath() {
-  const stateFile = process.env.STATE_FILE ?? join2(homedir(), ...STATE_FILE_DEFAULT);
-  return join2(dirname2(stateFile), GH_LOGIN_MARKER_FILE);
-}
-function failedRecently() {
-  try {
-    const marker = JSON.parse(readFileSync2(markerPath(), "utf-8"));
-    const failed = new Date(marker.failed).getTime();
-    const since = Date.now() - failed;
-    return since >= 0 && since < GH_LOGIN_RETRY_AFTER_MS;
-  } catch {
-    return false;
-  }
-}
-function recordFailure() {
-  try {
-    const path3 = markerPath();
-    mkdirSync2(dirname2(path3), { recursive: true });
-    const partial = `${path3}.${process.pid}`;
-    const marker = { failed: (/* @__PURE__ */ new Date()).toISOString() };
-    writeFileSync(partial, JSON.stringify(marker));
-    renameSync2(partial, path3);
-  } catch {
-  }
-}
-var alreadyTried = false;
-var login;
-function githubLogin() {
-  if (alreadyTried)
-    return login;
-  alreadyTried = true;
-  if (failedRecently())
-    return void 0;
-  try {
-    const printed = execFileSync(GH_LOGIN_COMMAND, GH_LOGIN_ARGUMENTS, {
-      encoding: "utf-8",
-      timeout: GH_LOGIN_TIMEOUT_MS,
-      stdio: ["ignore", "pipe", "ignore"]
-    }).trim();
-    if (isLogin(printed))
-      login = printed;
-  } catch {
-  }
-  if (login === void 0)
-    recordFailure();
-  return login;
-}
-
-// dist/src/config.js
-var LS_INTEGRATION_VERSION = true ? "0.4.2" : process.env.CC_LANGSMITH_INTEGRATION_VERSION || void 0;
-var PROVIDER_HOSTS = {
-  github: "github.com",
-  gitlab: "gitlab.com",
-  bitbucket: "bitbucket.org",
-  devAzure: "dev.azure.com"
-};
-function readAnthropicUserId() {
-  const homeDir = process.env.HOME ?? process.env.USERPROFILE;
-  if (!homeDir)
-    return void 0;
-  const configPath = join3(homeDir, ".claude.json");
-  try {
-    const raw = readFileSync3(configPath, "utf-8");
-    const parsed = JSON.parse(raw);
-    const userId = parsed?.userID;
-    if (typeof userId === "string" && userId.length > 0) {
-      return userId;
-    }
-  } catch (err) {
-    debug(`Could not read Anthropic user ID from ${configPath}: ${err}`);
-  }
-  return void 0;
-}
-function readLocalUsername() {
-  return userInfo().username;
-}
-var GIT_PROVIDERS = {
-  "github.com": "github",
-  "gitlab.com": "gitlab",
-  "bitbucket.org": "bitbucket",
-  "dev.azure.com": "devAzure"
-};
-function parseRepoName(remoteUrl) {
-  const value = remoteUrl.trim();
-  try {
-    const url = new URL(value);
-    const provider2 = GIT_PROVIDERS[url.hostname.toLowerCase()];
-    const name = url.pathname.replace(/^\/+|\/+$/g, "").replace(/\.git$/, "");
-    if (provider2 && name)
-      return { provider: provider2, name };
-  } catch {
-  }
-  const scpMatch = value.match(/^(?:[^@]+@)?([^:]+):\/?(.+)$/);
-  if (scpMatch) {
-    const provider2 = GIT_PROVIDERS[scpMatch[1].toLowerCase()];
-    const name = scpMatch[2].replace(/\/+$/, "").replace(/\.git$/, "");
-    if (provider2 && name)
-      return { provider: provider2, name };
-  }
-  return void 0;
-}
-function gitOutput(command, cwd) {
-  const env = { ...process.env, LC_ALL: "C", LANG: "C" };
-  for (const key of GIT_LOCATION_ENV_KEYS)
-    delete env[key];
-  return execSync(command, {
-    cwd,
-    env,
-    encoding: "utf-8",
-    timeout: 5e3,
-    stdio: ["ignore", "pipe", "pipe"]
-  });
-}
-function getRepoName(cwd) {
-  try {
-    const output = gitOutput("git remote -v", cwd);
-    const lines = output.trim().split("\n").filter(Boolean);
-    const remotes = [];
-    for (const line of lines) {
-      const parts = line.split(/\s+/);
-      if (parts.length >= 2 && line.includes("(fetch)")) {
-        remotes.push({ name: parts[0], url: parts[1] });
-      }
-    }
-    const origin = remotes.find((r) => r.name === "origin");
-    if (origin) {
-      const name = parseRepoName(origin.url + " ");
-      if (name)
-        return name;
-    }
-    for (const remote of remotes) {
-      const name = parseRepoName(remote.url + " ");
-      if (name)
-        return name;
-    }
-  } catch {
-  }
-  return void 0;
-}
-function pinnedRepositoryKeys(metadata) {
-  return metadata?.[PINNED_REPOSITORY_KEYS] ?? NO_PINNED_KEYS;
-}
-function getRepoUrl(provider2, name) {
-  const host = PROVIDER_HOSTS[provider2];
-  return host ? `https://${host}/${name}` : void 0;
-}
-function getRepoRoot(cwd) {
-  try {
-    const root = gitOutput("git rev-parse --show-toplevel", cwd).trim();
-    return root ? resolve(root) : void 0;
-  } catch (err) {
-    const stderr = String(err?.stderr ?? "");
-    return NOT_A_REPOSITORY.test(stderr) ? null : void 0;
-  }
-}
-function getGitUserName(cwd) {
-  try {
-    const name = gitOutput("git config user.name", cwd).trim();
-    if (name)
-      return name;
-  } catch {
-  }
-  return githubLogin();
-}
-function getGitInfo(cwd) {
-  const result = {};
-  try {
-    const branch = gitOutput("git rev-parse --abbrev-ref HEAD", cwd).trim();
-    if (branch && branch !== "HEAD")
-      result.branch = branch;
-  } catch {
-  }
-  try {
-    const commit = gitOutput("git rev-parse HEAD", cwd).trim();
-    if (commit)
-      result.commit = commit;
-  } catch {
-  }
-  return result;
-}
-function envBoolean(field2) {
-  const setting = BOOLEAN_SETTINGS[field2];
-  const env = process.env[setting.env]?.toLowerCase();
-  if (env === void 0)
-    return void 0;
-  if (env === "true")
-    return true;
-  if (env === "false")
-    return false;
-  return setting.restrictive;
-}
-function loadConfig(options) {
-  const cwd = options?.cwd ?? process.cwd();
-  const homeDir = homedir2();
-  const stateFilePath = process.env.STATE_FILE ?? join3(homeDir, ...STATE_FILE_DEFAULT);
-  const debug2 = (process.env.CC_LANGSMITH_DEBUG ?? "").toLowerCase() === "true";
-  let replicas2;
-  const providedReplicas = process.env.CC_LANGSMITH_RUNS_ENDPOINTS;
-  if (providedReplicas !== void 0) {
-    try {
-      replicas2 = JSON.parse(providedReplicas);
-    } catch {
-      error("Failed to parse provided CC_LANGSMITH_RUNS_ENDPOINTS. Please make sure they are valid JSON.");
-    }
-  }
-  const parentDottedOrder = process.env.CC_LANGSMITH_PARENT_DOTTED_ORDER || void 0;
-  let customMetadata;
-  const providedMetadata = process.env.CC_LANGSMITH_METADATA;
-  if (providedMetadata !== void 0) {
-    try {
-      const parsed = JSON.parse(providedMetadata);
-      if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-        customMetadata = parsed;
-      } else {
-        error("CC_LANGSMITH_METADATA must be a JSON object (not an array or primitive).");
-      }
-    } catch {
-      error("Failed to parse provided CC_LANGSMITH_METADATA. Please make sure it is valid JSON.");
-    }
-  }
-  const redactEnv = (process.env.CC_LANGSMITH_REDACT ?? "").trim().toLowerCase();
-  const redact = !["0", "false", "no", "off"].includes(redactEnv);
-  let redactExtraRules;
-  const providedExtra = process.env.CC_LANGSMITH_REDACT_EXTRA;
-  if (providedExtra !== void 0) {
-    try {
-      const parsed = JSON.parse(providedExtra);
-      if (!Array.isArray(parsed)) {
-        error("CC_LANGSMITH_REDACT_EXTRA must be a JSON array of { pattern, replace }.");
-      } else {
-        const validRules = [];
-        for (const rule of parsed) {
-          if (typeof rule !== "object" || rule === null || typeof rule.pattern !== "string" || rule.replace !== void 0 && typeof rule.replace !== "string") {
-            error(`Skipping invalid CC_LANGSMITH_REDACT_EXTRA rule (expected { pattern: string, replace?: string }): ${JSON.stringify(rule)}`);
-            continue;
-          }
-          try {
-            new RegExp(rule.pattern);
-          } catch {
-            error(`Skipping CC_LANGSMITH_REDACT_EXTRA rule with an invalid regex pattern: ${rule.pattern}`);
-            continue;
-          }
-          validRules.push(rule);
-        }
-        if (validRules.length > 0 || parsed.length === 0)
-          redactExtraRules = validRules;
-      }
-    } catch {
-      error("Failed to parse CC_LANGSMITH_REDACT_EXTRA. Please make sure it is valid JSON.");
-    }
-  }
-  const files = readCommonConfigFiles({ cwd, home: homeDir, harnessDirectory: ".claude" });
-  const common = mergeCommonConfig({
-    harness: files.harness.common,
-    root: files.root.common,
-    user: files.user.common,
-    userRoot: files.userRoot.common,
-    env: {
-      enabled: envBoolean("enabled"),
-      defaultMuted: envBoolean("defaultMuted"),
-      api_key: process.env.CC_LANGSMITH_API_KEY ?? process.env.LANGSMITH_API_KEY,
-      api_url: process.env.LANGSMITH_ENDPOINT,
-      project: process.env.CC_LANGSMITH_PROJECT,
-      metadata: customMetadata,
-      redact: process.env.CC_LANGSMITH_REDACT === void 0 ? void 0 : redact
-      // Environment rules retain the existing tolerant parser.
-    },
-    defaults: { api_key: "", api_url: "https://api.smith.langchain.com", project: "claude-code" }
-  }, { envFirst: true });
-  if (replicas2 === void 0)
-    replicas2 = toSdkReplicas(common.replicas);
-  redactExtraRules ??= common.redact_extra_rules;
-  customMetadata = common.metadata;
-  const anthropicUserId = readAnthropicUserId();
-  const localUsername = readLocalUsername();
-  const identityMetadata = { local_username: localUsername };
-  if (anthropicUserId) {
-    identityMetadata.user_id = anthropicUserId;
-    identityMetadata.anthropic_user_id = anthropicUserId;
-  }
-  const contractMetadata = {
-    ls_agent_purpose: "coding",
-    ls_integration: "claude-code",
-    ls_agent_runtime: "Claude Code",
-    ls_trace_schema_version: "coding-agent-v1",
-    cwd
-  };
-  if (LS_INTEGRATION_VERSION) {
-    contractMetadata.ls_integration_version = LS_INTEGRATION_VERSION;
-  }
-  const repoMetadata = {};
-  if (!options?.deferGit) {
-    const repoName = getRepoName(cwd);
-    if (repoName != null) {
-      repoMetadata.repository_name = repoName.name;
-      repoMetadata.repository_provider = repoName.provider;
-      const url = getRepoUrl(repoName.provider, repoName.name);
-      if (url)
-        repoMetadata.repository_url = url;
-    }
-    const gitInfo = getGitInfo(cwd);
-    if (gitInfo.branch)
-      repoMetadata.git_branch = gitInfo.branch;
-    if (gitInfo.commit)
-      repoMetadata.git_commit_sha = gitInfo.commit;
-  }
-  const pinned = REPOSITORY_METADATA_KEYS.filter((key) => customMetadata?.[key] !== void 0);
-  customMetadata = { ...contractMetadata, ...identityMetadata, ...repoMetadata, ...customMetadata };
-  Object.defineProperty(customMetadata, PINNED_REPOSITORY_KEYS, { value: new Set(pinned) });
-  return {
-    enabled: common.enabled,
-    defaultMuted: common.defaultMuted,
-    apiKey: common.api_key,
-    project: common.project,
-    apiBaseUrl: common.api_url,
-    stateFilePath,
-    debug: debug2,
-    parentDottedOrder,
-    replicas: replicas2,
-    customMetadata,
-    redact: common.redact,
-    redactExtraRules
-  };
 }
 
 // dist/src/utils/hook-entry.js
@@ -2385,7 +2036,7 @@ async function onAttemptFailure({ error: error2, attemptNumber, retriesConsumed,
   const delayTime = calculateDelay(retriesConsumed, options);
   const finalDelay = Math.min(delayTime, remainingTime);
   if (finalDelay > 0) {
-    await new Promise((resolve14, reject) => {
+    await new Promise((resolve15, reject) => {
       const onAbort = () => {
         clearTimeout(timeoutToken);
         options.signal?.removeEventListener("abort", onAbort);
@@ -2393,7 +2044,7 @@ async function onAttemptFailure({ error: error2, attemptNumber, retriesConsumed,
       };
       const timeoutToken = setTimeout(() => {
         options.signal?.removeEventListener("abort", onAbort);
-        resolve14();
+        resolve15();
       }, finalDelay);
       if (options.unref) {
         timeoutToken.unref?.();
@@ -2803,7 +2454,7 @@ var safeJSON = (text) => {
 };
 
 // node_modules/.pnpm/langsmith@0.10.5/node_modules/langsmith/dist/_openapi_client/internal/utils/sleep.js
-var sleep = (ms) => new Promise((resolve14) => setTimeout(resolve14, ms));
+var sleep = (ms) => new Promise((resolve15) => setTimeout(resolve15, ms));
 
 // node_modules/.pnpm/langsmith@0.10.5/node_modules/langsmith/dist/_openapi_client/version.js
 var VERSION = "0.0.1";
@@ -3482,8 +3133,8 @@ var __classPrivateFieldGet = function(receiver, state, kind, f2) {
 var _APIPromise_client;
 var APIPromise = class _APIPromise extends Promise {
   constructor(client2, responsePromise, parseResponse = defaultParseResponse) {
-    super((resolve14) => {
-      resolve14(null);
+    super((resolve15) => {
+      resolve15(null);
     });
     Object.defineProperty(this, "responsePromise", {
       enumerable: true,
@@ -6098,19 +5749,19 @@ async function stat2(filePath) {
 function existsSync2(p) {
   return nodeFs.existsSync(p);
 }
-function mkdirSync4(dir) {
+function mkdirSync3(dir) {
   nodeFs.mkdirSync(dir, { recursive: true });
 }
-function writeFileSync3(filePath, content) {
+function writeFileSync2(filePath, content) {
   nodeFs.writeFileSync(filePath, content);
 }
-function renameSync4(oldPath, newPath) {
+function renameSync3(oldPath, newPath) {
   nodeFs.renameSync(oldPath, newPath);
 }
 function unlinkSync2(filePath) {
   nodeFs.unlinkSync(filePath);
 }
-function readFileSync5(filePath) {
+function readFileSync3(filePath) {
   return nodeFs.readFileSync(filePath, "utf-8");
 }
 async function mkdirExclusive(dir) {
@@ -6292,12 +5943,12 @@ var PromptCache = class {
     }
     const dir = path2.dirname(filePath);
     if (!existsSync2(dir)) {
-      mkdirSync4(dir);
+      mkdirSync3(dir);
     }
     const tempPath = `${filePath}.tmp`;
     try {
-      writeFileSync3(tempPath, JSON.stringify({ entries }, null, 2));
-      renameSync4(tempPath, filePath);
+      writeFileSync2(tempPath, JSON.stringify({ entries }, null, 2));
+      renameSync3(tempPath, filePath);
     } catch (e) {
       if (existsSync2(tempPath)) {
         unlinkSync2(tempPath);
@@ -6318,7 +5969,7 @@ var PromptCache = class {
     }
     let entries;
     try {
-      const content = readFileSync5(filePath);
+      const content = readFileSync3(filePath);
       const data = JSON.parse(content);
       entries = data.entries ?? null;
     } catch {
@@ -6431,14 +6082,14 @@ var LOCK_POLL_INTERVAL_MS = 10;
 var LOCK_STALE_AFTER_MS = 1e4;
 var LOCK_METADATA_FILE = "created_at";
 function sleep2(ms) {
-  return new Promise((resolve14) => setTimeout(resolve14, ms));
+  return new Promise((resolve15) => setTimeout(resolve15, ms));
 }
 function isEEXIST(err) {
   return typeof err === "object" && err !== null && err.code === "EEXIST";
 }
 function lockMetadataLines(lockDir) {
   try {
-    return readFileSync5(path2.join(lockDir, LOCK_METADATA_FILE)).split("\n");
+    return readFileSync3(path2.join(lockDir, LOCK_METADATA_FILE)).split("\n");
   } catch {
     return void 0;
   }
@@ -6553,7 +6204,7 @@ function loadProfileState() {
     return void 0;
   }
   try {
-    const config = JSON.parse(readFileSync5(configPath));
+    const config = JSON.parse(readFileSync3(configPath));
     const profileName = resolveProfileName(config);
     const profile = profileName ? config.profiles?.[profileName] : void 0;
     if (!profileName || !profile) {
@@ -6783,7 +6434,7 @@ var ProfileAuth = class {
   }
   reloadProfile() {
     try {
-      const config = JSON.parse(readFileSync5(this.state.configPath));
+      const config = JSON.parse(readFileSync3(this.state.configPath));
       const profile = config.profiles?.[this.state.profileName];
       if (!profile) {
         return void 0;
@@ -7367,8 +7018,8 @@ var SerializeWorker = class {
     if (!ok)
       return null;
     const id = this.nextId++;
-    return new Promise((resolve14, reject) => {
-      this.pending.set(id, { resolve: resolve14, reject });
+    return new Promise((resolve15, reject) => {
+      this.pending.set(id, { resolve: resolve15, reject });
       try {
         this.worker.postMessage({ id, op: "serialize", payload });
       } catch (e) {
@@ -7525,7 +7176,7 @@ var handle429 = async (response) => {
   if (response?.status === 429) {
     const retryAfter = parseInt(response.headers.get("retry-after") ?? "10", 10) * 1e3;
     if (retryAfter > 0) {
-      await new Promise((resolve14) => setTimeout(resolve14, retryAfter));
+      await new Promise((resolve15) => setTimeout(resolve15, retryAfter));
       return true;
     }
   }
@@ -7624,8 +7275,8 @@ var AutoBatchQueue = class {
   }
   push(item) {
     let itemPromiseResolve;
-    const itemPromise = new Promise((resolve14) => {
-      itemPromiseResolve = resolve14;
+    const itemPromise = new Promise((resolve15) => {
+      itemPromiseResolve = resolve15;
     });
     const size = estimateSerializedSize(item.item).size;
     if (this.sizeBytes + size > this.maxSizeBytes && this.items.length > 0) {
@@ -12629,7 +12280,7 @@ Message: ${Array.isArray(result.detail) ? result.detail.join("\n") : "Unspecifie
       console.warn("[WARNING]: When tracing in manual flush mode, you must call `await client.flush()` manually to submit trace batches.");
       return Promise.resolve();
     }
-    await new Promise((resolve14) => setTimeout(resolve14, 1));
+    await new Promise((resolve15) => setTimeout(resolve15, 1));
     while (this._pendingDrains.size > 0) {
       await Promise.all([...this._pendingDrains]);
     }
@@ -13897,6 +13548,420 @@ function createSecretAnonymizer(options) {
 // dist/src/hooks/flush-queue.js
 import { join as join8 } from "node:path";
 
+// dist/src/config.js
+import { readFileSync as readFileSync5 } from "node:fs";
+import { homedir, userInfo } from "node:os";
+import { join as join3 } from "node:path";
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/git/github-login.js
+import { mkdirSync as mkdirSync4, readFileSync as readFileSync4, renameSync as renameSync4, writeFileSync as writeFileSync3 } from "node:fs";
+import { dirname as dirname2 } from "node:path";
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/git/constants.js
+var GIT_LOCATION_ENV_KEYS = [
+  "GIT_DIR",
+  "GIT_WORK_TREE",
+  "GIT_COMMON_DIR",
+  "GIT_INDEX_FILE",
+  "GIT_CEILING_DIRECTORIES"
+];
+var NOT_A_REPOSITORY = /not a git repository \(or any of the parent directories\)/i;
+var REMOTE_PATH_EDGE_SLASHES = /^\/+|\/+$/g;
+var REMOTE_PATH_TRAILING_SLASHES = /\/+$/;
+var REMOTE_GIT_SUFFIX = /\.git$/;
+var REMOTE_LINE_WHITESPACE = /\s+/;
+var SCP_REMOTE_PATTERN = /^(?:[^@]+@)?([^:]+):\/?(.+)$/;
+var GIT_DIRECTORY_NAME = ".git";
+var GIT_MARKERS = {
+  REPOSITORY_ROOT: "repository root",
+  ONLY_GIT_CAN_SAY: "only git can say",
+  NOTHING_HERE: "nothing here"
+};
+var GIT_PROVIDERS = {
+  "github.com": "github",
+  "gitlab.com": "gitlab",
+  "bitbucket.org": "bitbucket",
+  "dev.azure.com": "devAzure"
+};
+var PROVIDER_HOSTS = {
+  github: "github.com",
+  gitlab: "gitlab.com",
+  bitbucket: "bitbucket.org",
+  devAzure: "dev.azure.com"
+};
+var GIT_COMMAND_TIMEOUT_MS = 5e3;
+var GH_LOGIN_COMMAND = "gh";
+var GH_LOGIN_ARGUMENTS = ["api", "user", "--jq", ".login"];
+var GH_LOGIN_TIMEOUT_MS = 5e3;
+var GH_LOGIN_PATTERN = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
+var GH_LOGIN_NULL_OUTPUT = "null";
+var GH_LOGIN_RETRY_AFTER_MS = 24 * 60 * 60 * 1e3;
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/git/repository.js
+import { execFileSync } from "node:child_process";
+import { resolve } from "node:path";
+function parseRepoName(remoteUrl) {
+  const value = remoteUrl.trim();
+  try {
+    const url = new URL(value);
+    const provider2 = GIT_PROVIDERS[url.hostname.toLowerCase()];
+    const name = url.pathname.replace(REMOTE_PATH_EDGE_SLASHES, "").replace(REMOTE_GIT_SUFFIX, "");
+    if (provider2 && name)
+      return { provider: provider2, name };
+  } catch {
+  }
+  const scpMatch = value.match(SCP_REMOTE_PATTERN);
+  if (scpMatch) {
+    const host = scpMatch[1];
+    const path3 = scpMatch[2];
+    if (host && path3) {
+      const provider2 = GIT_PROVIDERS[host.toLowerCase()];
+      const name = path3.replace(REMOTE_PATH_TRAILING_SLASHES, "").replace(REMOTE_GIT_SUFFIX, "");
+      if (provider2 && name)
+        return { provider: provider2, name };
+    }
+  }
+  return void 0;
+}
+function gitOutput(args, cwd) {
+  const env = { ...process.env, LC_ALL: "C", LANG: "C" };
+  for (const key of GIT_LOCATION_ENV_KEYS)
+    delete env[key];
+  return execFileSync("git", args, {
+    cwd,
+    env,
+    encoding: "utf-8",
+    timeout: GIT_COMMAND_TIMEOUT_MS,
+    stdio: ["ignore", "pipe", "pipe"]
+  });
+}
+function getRepoName(cwd) {
+  try {
+    const output = gitOutput(["remote", "-v"], cwd);
+    const lines = output.trim().split("\n").filter(Boolean);
+    const remotes = [];
+    for (const line of lines) {
+      const parts = line.split(REMOTE_LINE_WHITESPACE);
+      const name = parts[0];
+      const url = parts[1];
+      if (name && url && line.includes("(fetch)"))
+        remotes.push({ name, url });
+    }
+    const origin = remotes.find((remote) => remote.name === "origin");
+    if (origin) {
+      const name = parseRepoName(origin.url);
+      if (name)
+        return name;
+    }
+    for (const remote of remotes) {
+      const name = parseRepoName(remote.url);
+      if (name)
+        return name;
+    }
+  } catch {
+  }
+  return void 0;
+}
+function getRepoUrl(provider2, name) {
+  const host = PROVIDER_HOSTS[provider2];
+  return host ? `https://${host}/${name}` : void 0;
+}
+function getRepoRoot(cwd) {
+  try {
+    const root = gitOutput(["rev-parse", "--show-toplevel"], cwd).trim();
+    return root ? resolve(root) : void 0;
+  } catch (error2) {
+    const stderr = String(error2?.stderr ?? "");
+    return NOT_A_REPOSITORY.test(stderr) ? null : void 0;
+  }
+}
+function getGitUserName(cwd, options) {
+  try {
+    const name = gitOutput(["config", "user.name"], cwd).trim();
+    if (name)
+      return name;
+  } catch {
+  }
+  return options?.githubLogin?.();
+}
+function getGitInfo(cwd) {
+  const result = {};
+  try {
+    const branch = gitOutput(["rev-parse", "--abbrev-ref", "HEAD"], cwd).trim();
+    if (branch && branch !== "HEAD")
+      result.branch = branch;
+  } catch {
+  }
+  try {
+    const commit = gitOutput(["rev-parse", "HEAD"], cwd).trim();
+    if (commit)
+      result.commit = commit;
+  } catch {
+  }
+  return result;
+}
+function githubLoginLookup() {
+  return execFileSync(GH_LOGIN_COMMAND, GH_LOGIN_ARGUMENTS, {
+    encoding: "utf-8",
+    timeout: GH_LOGIN_TIMEOUT_MS,
+    stdio: ["ignore", "pipe", "ignore"]
+  }).trim();
+}
+function isGitHubLogin(printed) {
+  return printed !== GH_LOGIN_NULL_OUTPUT && GH_LOGIN_PATTERN.test(printed);
+}
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/git/github-login.js
+function createGitHubLoginFallback(options) {
+  const now = options.now ?? Date.now;
+  const retryAfterMs = options.retryAfterMs ?? GH_LOGIN_RETRY_AFTER_MS;
+  let alreadyTried = false;
+  let login;
+  function failedRecently() {
+    try {
+      const marker = JSON.parse(readFileSync4(options.markerPath, "utf-8"));
+      const failed = new Date(marker.failed).getTime();
+      const since = now() - failed;
+      return since >= 0 && since < retryAfterMs;
+    } catch {
+      return false;
+    }
+  }
+  function recordFailure2() {
+    try {
+      mkdirSync4(dirname2(options.markerPath), { recursive: true });
+      const partial = `${options.markerPath}.${process.pid}`;
+      const marker = { failed: new Date(now()).toISOString() };
+      writeFileSync3(partial, JSON.stringify(marker));
+      renameSync4(partial, options.markerPath);
+    } catch {
+    }
+  }
+  return () => {
+    if (alreadyTried)
+      return login;
+    alreadyTried = true;
+    if (failedRecently())
+      return void 0;
+    try {
+      const printed = githubLoginLookup();
+      if (isGitHubLogin(printed))
+        login = printed;
+    } catch {
+    }
+    if (login === void 0)
+      recordFailure2();
+    return login;
+  };
+}
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/git/paths.js
+import { statSync as statSync4 } from "node:fs";
+import { dirname as dirname3, join as join2, resolve as resolve2 } from "node:path";
+function gitMarkerAt(directory) {
+  try {
+    return statSync4(join2(directory, GIT_DIRECTORY_NAME)).isDirectory() ? GIT_MARKERS.REPOSITORY_ROOT : GIT_MARKERS.ONLY_GIT_CAN_SAY;
+  } catch {
+    return GIT_MARKERS.NOTHING_HERE;
+  }
+}
+function rootFromGitMarker(directory) {
+  let current = resolve2(directory);
+  for (; ; ) {
+    const marker = gitMarkerAt(current);
+    if (marker === GIT_MARKERS.REPOSITORY_ROOT)
+      return current;
+    if (marker === GIT_MARKERS.ONLY_GIT_CAN_SAY)
+      return void 0;
+    const parent = dirname3(current);
+    const reachedFilesystemRoot = parent === current;
+    if (reachedFilesystemRoot)
+      return null;
+    current = parent;
+  }
+}
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/utils/paths.js
+import { statSync as statSync5 } from "node:fs";
+import { dirname as dirname4 } from "node:path";
+function nearestExistingDirectory(path3) {
+  let current = path3;
+  for (; ; ) {
+    const parent = dirname4(current);
+    const reachedFilesystemRoot = parent === current;
+    if (reachedFilesystemRoot)
+      return void 0;
+    try {
+      if (statSync5(current).isDirectory())
+        return current;
+    } catch {
+    }
+    current = parent;
+  }
+}
+
+// dist/src/config.js
+function readAnthropicUserId() {
+  const homeDir = process.env.HOME ?? process.env.USERPROFILE;
+  if (!homeDir)
+    return void 0;
+  const configPath = join3(homeDir, ".claude.json");
+  try {
+    const raw = readFileSync5(configPath, "utf-8");
+    const parsed = JSON.parse(raw);
+    const userId = parsed?.userID;
+    if (typeof userId === "string" && userId.length > 0) {
+      return userId;
+    }
+  } catch (err) {
+    debug(`Could not read Anthropic user ID from ${configPath}: ${err}`);
+  }
+  return void 0;
+}
+function readLocalUsername() {
+  return userInfo().username;
+}
+function pinnedRepositoryKeys(metadata) {
+  return metadata?.[PINNED_REPOSITORY_KEYS] ?? NO_PINNED_KEYS;
+}
+function envBoolean(field2) {
+  const setting = BOOLEAN_SETTINGS[field2];
+  const env = process.env[setting.env]?.toLowerCase();
+  if (env === void 0)
+    return void 0;
+  if (env === "true")
+    return true;
+  if (env === "false")
+    return false;
+  return setting.restrictive;
+}
+function resolveStateFilePath() {
+  return process.env.STATE_FILE ?? join3(homedir(), ...STATE_FILE_DEFAULT);
+}
+function loadConfig(options) {
+  const cwd = options?.cwd ?? process.cwd();
+  const homeDir = homedir();
+  const stateFilePath = resolveStateFilePath();
+  const debug2 = (process.env.CC_LANGSMITH_DEBUG ?? "").toLowerCase() === "true";
+  let replicas2;
+  const providedReplicas = process.env.CC_LANGSMITH_RUNS_ENDPOINTS;
+  if (providedReplicas !== void 0) {
+    try {
+      replicas2 = JSON.parse(providedReplicas);
+    } catch {
+      error("Failed to parse provided CC_LANGSMITH_RUNS_ENDPOINTS. Please make sure they are valid JSON.");
+    }
+  }
+  const parentDottedOrder = process.env.CC_LANGSMITH_PARENT_DOTTED_ORDER || void 0;
+  let customMetadata;
+  const providedMetadata = process.env.CC_LANGSMITH_METADATA;
+  if (providedMetadata !== void 0) {
+    try {
+      const parsed = JSON.parse(providedMetadata);
+      if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+        customMetadata = parsed;
+      } else {
+        error("CC_LANGSMITH_METADATA must be a JSON object (not an array or primitive).");
+      }
+    } catch {
+      error("Failed to parse provided CC_LANGSMITH_METADATA. Please make sure it is valid JSON.");
+    }
+  }
+  const redactEnv = (process.env.CC_LANGSMITH_REDACT ?? "").trim().toLowerCase();
+  const redact = !["0", "false", "no", "off"].includes(redactEnv);
+  let redactExtraRules;
+  const providedExtra = process.env.CC_LANGSMITH_REDACT_EXTRA;
+  if (providedExtra !== void 0) {
+    try {
+      const parsed = JSON.parse(providedExtra);
+      if (!Array.isArray(parsed)) {
+        error("CC_LANGSMITH_REDACT_EXTRA must be a JSON array of { pattern, replace }.");
+      } else {
+        const validRules = [];
+        for (const rule of parsed) {
+          if (typeof rule !== "object" || rule === null || typeof rule.pattern !== "string" || rule.replace !== void 0 && typeof rule.replace !== "string") {
+            error(`Skipping invalid CC_LANGSMITH_REDACT_EXTRA rule (expected { pattern: string, replace?: string }): ${JSON.stringify(rule)}`);
+            continue;
+          }
+          try {
+            new RegExp(rule.pattern);
+          } catch {
+            error(`Skipping CC_LANGSMITH_REDACT_EXTRA rule with an invalid regex pattern: ${rule.pattern}`);
+            continue;
+          }
+          validRules.push(rule);
+        }
+        if (validRules.length > 0 || parsed.length === 0)
+          redactExtraRules = validRules;
+      }
+    } catch {
+      error("Failed to parse CC_LANGSMITH_REDACT_EXTRA. Please make sure it is valid JSON.");
+    }
+  }
+  const files = readCommonConfigFiles({ cwd, home: homeDir, harnessDirectory: ".claude" });
+  const common = mergeCommonConfig({
+    harness: files.harness.common,
+    root: files.root.common,
+    user: files.user.common,
+    userRoot: files.userRoot.common,
+    env: {
+      enabled: envBoolean("enabled"),
+      defaultMuted: envBoolean("defaultMuted"),
+      api_key: process.env.CC_LANGSMITH_API_KEY ?? process.env.LANGSMITH_API_KEY,
+      api_url: process.env.LANGSMITH_ENDPOINT,
+      project: process.env.CC_LANGSMITH_PROJECT,
+      metadata: customMetadata,
+      redact: process.env.CC_LANGSMITH_REDACT === void 0 ? void 0 : redact
+      // Environment rules retain the existing tolerant parser.
+    },
+    defaults: { api_key: "", api_url: "https://api.smith.langchain.com", project: "claude-code" }
+  }, { envFirst: true });
+  if (replicas2 === void 0)
+    replicas2 = toSdkReplicas(common.replicas);
+  redactExtraRules ??= common.redact_extra_rules;
+  customMetadata = common.metadata;
+  const anthropicUserId = readAnthropicUserId();
+  const localUsername = readLocalUsername();
+  const identityMetadata = { local_username: localUsername };
+  if (anthropicUserId) {
+    identityMetadata.user_id = anthropicUserId;
+    identityMetadata.anthropic_user_id = anthropicUserId;
+  }
+  const repoMetadata = {};
+  if (!options?.deferGit) {
+    const repoName = getRepoName(cwd);
+    if (repoName != null) {
+      repoMetadata.repository_name = repoName.name;
+      repoMetadata.repository_provider = repoName.provider;
+      const url = getRepoUrl(repoName.provider, repoName.name);
+      if (url)
+        repoMetadata.repository_url = url;
+    }
+    const gitInfo = getGitInfo(cwd);
+    if (gitInfo.branch)
+      repoMetadata.git_branch = gitInfo.branch;
+    if (gitInfo.commit)
+      repoMetadata.git_commit_sha = gitInfo.commit;
+  }
+  const pinned = REPOSITORY_METADATA_KEYS.filter((key) => customMetadata?.[key] !== void 0);
+  customMetadata = { cwd, ...identityMetadata, ...repoMetadata, ...customMetadata };
+  Object.defineProperty(customMetadata, PINNED_REPOSITORY_KEYS, { value: new Set(pinned) });
+  return {
+    enabled: common.enabled,
+    defaultMuted: common.defaultMuted,
+    apiKey: common.api_key,
+    project: common.project,
+    apiBaseUrl: common.api_url,
+    stateFilePath,
+    debug: debug2,
+    parentDottedOrder,
+    replicas: replicas2,
+    customMetadata,
+    redact: common.redact,
+    redactExtraRules
+  };
+}
+
 // dist/src/utils/hook-init.js
 function initHook(cwd, options) {
   const config = loadConfig({ cwd, deferGit: options?.deferGit });
@@ -13915,7 +13980,7 @@ function expandHome(path3) {
 }
 
 // dist/src/queue.js
-import { mkdirSync as mkdirSync6, readFileSync as readFileSync7, readdirSync as readdirSync3, statSync as statSync5, unlinkSync as unlinkSync4 } from "node:fs";
+import { mkdirSync as mkdirSync6, readFileSync as readFileSync7, readdirSync as readdirSync3, statSync as statSync7, unlinkSync as unlinkSync4 } from "node:fs";
 import { join as join6 } from "node:path";
 import { createHmac, randomUUID as randomUUID2 } from "node:crypto";
 
@@ -13935,12 +14000,12 @@ function publishByRename(path3, contents, tempSuffix, mode) {
 
 // dist/src/utils/session-store.js
 import { readdirSync, rmdirSync } from "node:fs";
-import { dirname as dirname3, join as join4 } from "node:path";
+import { dirname as dirname5, join as join4 } from "node:path";
 var safeName = (value) => {
   const safe = value.replace(QUEUE_SESSION_UNSAFE_CHARS, "_");
   return /[^.]/.test(safe) ? safe : `_${safe}`;
 };
-var storeRoot = (stateFilePath, dirName) => join4(dirname3(stateFilePath), dirName);
+var storeRoot = (stateFilePath, dirName) => join4(dirname5(stateFilePath), dirName);
 var storeDir = (stateFilePath, dirName, sessionId) => join4(storeRoot(stateFilePath, dirName), safeName(sessionId));
 function listStoredSessions(stateFilePath, dirName) {
   try {
@@ -13955,1893 +14020,6 @@ function discardDirIfEmpty(dir) {
   } catch {
   }
 }
-
-// dist/src/metadata.js
-var TRUSTED_INTEGRATION_VERSION = true ? "0.4.2" : process.env.CC_LANGSMITH_INTEGRATION_VERSION || void 0;
-var TRUSTED_METADATA = /* @__PURE__ */ Symbol("coding-agent trusted metadata");
-function trustedCodingAgentMetadata(metadata) {
-  return metadata?.[TRUSTED_METADATA];
-}
-var LS_AGENT_PURPOSE = "coding";
-var LS_INTEGRATION = "claude-code";
-var LS_AGENT_RUNTIME = "Claude Code";
-var LS_TRACE_SCHEMA_VERSION = "coding-agent-v1";
-function codingAgentMetadata(opts) {
-  const { sessionId, base, turnId, turnNumber, runtimeVersion, approvalPolicy, agentType, subagentId, subagentType, toolName, runName, skillName, runSpecific } = opts;
-  const meta = {
-    // Identity & grouping — always present.
-    ls_agent_purpose: LS_AGENT_PURPOSE,
-    ls_integration: LS_INTEGRATION,
-    ls_agent_runtime: LS_AGENT_RUNTIME,
-    ls_trace_schema_version: LS_TRACE_SCHEMA_VERSION,
-    thread_id: sessionId
-  };
-  if (turnId)
-    meta.turn_id = turnId;
-  if (typeof turnNumber === "number")
-    meta.turn_number = turnNumber;
-  if (runtimeVersion)
-    meta.ls_agent_runtime_version = runtimeVersion;
-  if (approvalPolicy)
-    meta.approval_policy = approvalPolicy;
-  meta.ls_agent_type = agentType;
-  if (subagentId) {
-    meta.ls_subagent_id = subagentId;
-    meta.agent_id = subagentId;
-  }
-  if (subagentType) {
-    meta.ls_subagent_type = subagentType;
-    meta.agent_type = subagentType;
-  }
-  if (toolName) {
-    meta.tool_name = toolName;
-    if (runName && toolName !== runName)
-      meta.ls_tool_name = toolName;
-  }
-  if (skillName)
-    meta.ls_skill_name = skillName;
-  const trusted = { ...meta };
-  if (TRUSTED_INTEGRATION_VERSION)
-    trusted.ls_integration_version = TRUSTED_INTEGRATION_VERSION;
-  if (opts.modelName !== void 0)
-    trusted.ls_model_name = opts.modelName;
-  if (opts.usageMetadata !== void 0)
-    trusted.usage_metadata = opts.usageMetadata;
-  const result = {
-    ...meta,
-    ...opts.modelName !== void 0 ? { ls_model_name: opts.modelName } : {},
-    ...opts.usageMetadata !== void 0 ? { usage_metadata: opts.usageMetadata } : {},
-    ...runSpecific,
-    ...base
-  };
-  Object.defineProperty(result, TRUSTED_METADATA, { value: trusted });
-  return result;
-}
-function skillNameFromTool(toolName, toolInput) {
-  if (toolName !== "Skill")
-    return void 0;
-  const skill = toolInput?.skill;
-  return typeof skill === "string" ? skill : void 0;
-}
-
-// dist/src/privacy.js
-var MUTED_TRACE_CONTENT = "[LangSmith system notice: content omitted because tracing is muted.]";
-var METADATA_KEYS = /* @__PURE__ */ new Set([
-  "thread_id",
-  "turn_number",
-  "turn_id",
-  "status",
-  "ls_tracing_mode",
-  "ls_agent_purpose",
-  "ls_agent_type",
-  "ls_agent_runtime",
-  "ls_agent_runtime_version",
-  "ls_integration",
-  "ls_integration_version",
-  "ls_trace_schema_version",
-  "ls_model_name",
-  "ls_tool_name",
-  "ls_skill_name",
-  "usage_metadata",
-  "ls_subagent_id",
-  "ls_subagent_type"
-]);
-function usageForMetadata(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value))
-    return void 0;
-  return value;
-}
-function projectMetadata(metadata, status) {
-  const safe = {};
-  for (const [key, value] of Object.entries(metadata ?? {})) {
-    if (!METADATA_KEYS.has(key))
-      continue;
-    if (key === "usage_metadata") {
-      const usage = usageForMetadata(value);
-      if (usage)
-        safe[key] = usage;
-    } else if (key === "turn_number") {
-      if (typeof value === "number" && Number.isSafeInteger(value) && value >= 1)
-        safe[key] = value;
-    } else if (typeof value === "string" && value.length) {
-      safe[key] = value;
-    }
-  }
-  safe.status = status === "error" || status === "completed" ? status : "running";
-  safe.ls_tracing_mode = "metadata";
-  return safe;
-}
-function metadataForMode(metadata, mode = "full", status) {
-  if (mode === "full")
-    return metadata;
-  return projectMetadata(trustedCodingAgentMetadata(metadata) ?? metadata, status);
-}
-function sanitizeReplica(replica, mode) {
-  if (mode === "full" || !replica || typeof replica !== "object")
-    return replica;
-  if (Array.isArray(replica))
-    return { projectName: replica[0] };
-  const { updates: _updates, ...safe } = replica;
-  return safe;
-}
-function runConfigForMode(config, mode = "full") {
-  if (mode === "full")
-    return config;
-  const status = config.error ? "error" : config.end_time != null ? "completed" : "running";
-  const extra = config.extra;
-  const safe = {};
-  for (const key of [
-    "client",
-    "id",
-    "name",
-    "run_type",
-    "project_name",
-    "start_time",
-    "end_time",
-    "parent_run_id",
-    "trace_id",
-    "dotted_order"
-  ]) {
-    if (key in config && config[key] !== void 0)
-      safe[key] = config[key];
-  }
-  if (Array.isArray(config.replicas)) {
-    safe.replicas = config.replicas.map((replica) => sanitizeReplica(replica, mode));
-  }
-  safe.inputs = { messages: [{ role: "user", content: MUTED_TRACE_CONTENT }] };
-  safe.outputs = { messages: [{ role: "assistant", content: MUTED_TRACE_CONTENT }] };
-  safe.extra = {
-    metadata: metadataForMode(extra?.metadata, mode, status),
-    // RunTree and Client both enrich extra AFTER construction. A client-level
-    // omitTracedRuntimeInfo flag alone does not suppress RunTree's additions,
-    // and replicas may use their own clients. Keep this method enumerable so it
-    // survives SDK object spreads and filters at the REST serialization boundary
-    // (including multipart .extra parts). Wire-payload tests guard this SDK behavior.
-    toJSON() {
-      return {
-        // Read the current metadata, not the constructor's copy: the client may
-        // have anonymized allowlisted values, which must not be restored here.
-        metadata: projectMetadata(this.metadata, typeof this.metadata?.status === "string" ? this.metadata.status : status)
-      };
-    }
-  };
-  return safe;
-}
-function createRunTree(config, mode = "full") {
-  const run = new RunTree(runConfigForMode(config, mode));
-  if (mode === "metadata" && run.replicas) {
-    run.replicas = run.replicas.map((replica) => sanitizeReplica(replica, mode));
-  }
-  if (typeof run.patchRun === "function") {
-    const patchRun = run.patchRun.bind(run);
-    run.patchRun = (options) => patchRun({ excludeInputs: false, ...options });
-  }
-  return run;
-}
-
-// dist/src/turn-record.js
-import { appendFileSync as appendFileSync2, existsSync as existsSync3, mkdirSync as mkdirSync5, readFileSync as readFileSync6, readdirSync as readdirSync2, statSync as statSync4, unlinkSync as unlinkSync3 } from "node:fs";
-import { dirname as dirname4, join as join5 } from "node:path";
-var turnRecordRoot = (stateFilePath) => storeRoot(stateFilePath, TURN_RECORD_DIR_NAME);
-var turnRecordDir = (stateFilePath, sessionId) => storeDir(stateFilePath, TURN_RECORD_DIR_NAME, sessionId);
-function turnRecordPath(stateFilePath, sessionId, turnKey) {
-  return join5(turnRecordDir(stateFilePath, sessionId), `${safeName(turnKey)}${TURN_RECORD_SUFFIX}`);
-}
-function entriesIn(dir, suffix) {
-  try {
-    return readdirSync2(dir).filter((name) => name.endsWith(suffix)).sort().map((name) => join5(dir, name));
-  } catch {
-    return [];
-  }
-}
-var listRecordedSessions = (stateFilePath) => listStoredSessions(stateFilePath, TURN_RECORD_DIR_NAME);
-var listTurnRecords = (dir) => entriesIn(dir, TURN_RECORD_SUFFIX);
-function recordsIdleMs(dir, now = Date.now()) {
-  let newest = 0;
-  for (const path3 of listTurnRecords(dir)) {
-    try {
-      newest = Math.max(newest, statSync4(path3).mtimeMs);
-    } catch {
-    }
-  }
-  return newest === 0 ? Number.POSITIVE_INFINITY : now - newest;
-}
-function append(path3, line) {
-  try {
-    mkdirSync5(dirname4(path3), { recursive: true, mode: PRIVATE_DIR_MODE });
-    appendFileSync2(path3, `${JSON.stringify(line)}
-`, { mode: PRIVATE_FILE_MODE });
-    return true;
-  } catch (err) {
-    warn(`Could not add to the turn record: ${err}`);
-    return false;
-  }
-}
-function recordedRun(run, tracing) {
-  const safe = runConfigForMode(run, tracing);
-  const extra = safe.extra;
-  if (typeof safe.id !== "string" || typeof safe.dotted_order !== "string")
-    return void 0;
-  return {
-    run_id: safe.id,
-    parent_run_id: typeof safe.parent_run_id === "string" ? safe.parent_run_id : void 0,
-    trace_id: typeof safe.trace_id === "string" ? safe.trace_id : safe.id,
-    dotted_order: safe.dotted_order,
-    name: typeof safe.name === "string" ? safe.name : "",
-    run_type: typeof safe.run_type === "string" ? safe.run_type : RECORDED_RUN_FALLBACK_TYPE,
-    project_name: typeof safe.project_name === "string" ? safe.project_name : void 0,
-    start_time: typeof safe.start_time === "string" ? safe.start_time : void 0,
-    end_time: typeof safe.end_time === "string" ? safe.end_time : void 0,
-    tracing,
-    metadata: JSON.parse(JSON.stringify(extra?.metadata ?? {}))
-  };
-}
-function recordRun(options) {
-  const run = recordedRun(options.run, options.tracing);
-  if (!run)
-    return false;
-  if (options.closesAt) {
-    run.open = true;
-    run.end_time = options.closesAt;
-  }
-  return append(options.path, {
-    k: TURN_RECORD_LINE.run,
-    root: options.root,
-    origin: options.origin,
-    run
-  });
-}
-function recordTurnClosed(path3, turnId) {
-  append(path3, { k: TURN_RECORD_LINE.closed, turn_id: turnId });
-}
-function closeTurnRecord(options) {
-  const path3 = turnRecordPath(options.stateFilePath, options.sessionId, options.turnRunId);
-  if (!existsSync3(path3))
-    return;
-  recordTurnClosed(path3, options.turnId);
-}
-function recordDelivered(path3, runId) {
-  return append(path3, { k: TURN_RECORD_LINE.delivered, id: runId });
-}
-function recordReconciled(path3, runId) {
-  append(path3, { k: TURN_RECORD_LINE.reconciled, id: runId });
-}
-function readTurnRecord(path3) {
-  let contents;
-  try {
-    if (statSync4(path3).size > TURN_RECORD_MAX_BYTES) {
-      warn(`Dropping a turn record too large to be real: ${path3}`);
-      discardTurnRecord(path3);
-      return void 0;
-    }
-    contents = readFileSync6(path3, "utf-8");
-  } catch {
-    return void 0;
-  }
-  const record = {
-    path: path3,
-    origin: "",
-    children: [],
-    closed: false,
-    delivered: /* @__PURE__ */ new Set(),
-    fixed: /* @__PURE__ */ new Set()
-  };
-  const byId = /* @__PURE__ */ new Map();
-  for (const line of contents.split("\n")) {
-    if (!line)
-      continue;
-    let parsed;
-    try {
-      parsed = JSON.parse(line);
-    } catch {
-      continue;
-    }
-    if (parsed.k === TURN_RECORD_LINE.run && typeof parsed.run?.run_id === "string") {
-      if (parsed.root)
-        record.root = parsed.run;
-      else
-        byId.set(parsed.run.run_id, parsed.run);
-      if (parsed.origin)
-        record.origin = parsed.origin;
-    } else if (parsed.k === TURN_RECORD_LINE.closed) {
-      record.closed = true;
-      record.turnId = parsed.turn_id;
-    } else if (parsed.k === TURN_RECORD_LINE.delivered && typeof parsed.id === "string") {
-      record.delivered.add(parsed.id);
-    } else if (parsed.k === TURN_RECORD_LINE.reconciled && typeof parsed.id === "string") {
-      record.fixed.add(parsed.id);
-    }
-  }
-  record.children = [...byId.values()];
-  return record;
-}
-function discardTurnRecord(path3) {
-  try {
-    unlinkSync3(path3);
-    debug(`Removed the turn record ${path3}`);
-  } catch {
-  }
-}
-
-// dist/src/queue.js
-function queueOrigin(destination) {
-  const identity = JSON.stringify([
-    destination.apiBaseUrl,
-    destination.replicas ?? null,
-    destination.redact ?? false,
-    destination.redactExtraRules ?? null
-  ]);
-  return createHmac("sha256", destination.apiKey).update(identity).digest("hex").slice(0, QUEUE_ORIGIN_LENGTH);
-}
-var queueDir = (stateFilePath) => storeRoot(stateFilePath, QUEUE_DIR_NAME);
-var queueSessionDir = (stateFilePath, sessionId) => storeDir(stateFilePath, QUEUE_DIR_NAME, sessionId);
-var listQueues = (stateFilePath) => listStoredSessions(stateFilePath, QUEUE_DIR_NAME);
-function names(dir) {
-  try {
-    return readdirSync3(dir);
-  } catch {
-    return [];
-  }
-}
-function entryIds(dir) {
-  try {
-    return readdirSync3(dir).filter((name) => name.endsWith(QUEUE_FILE_SUFFIX)).sort().map((name) => name.slice(0, -QUEUE_FILE_SUFFIX.length));
-  } catch {
-    return [];
-  }
-}
-function entryPath(dir, queueId) {
-  return join6(dir, `${queueId}${QUEUE_FILE_SUFFIX}`);
-}
-function readEntry(dir, queueId) {
-  try {
-    const parsed = JSON.parse(readFileSync7(entryPath(dir, queueId), "utf-8"));
-    return parsed && parsed.run ? { ...parsed, queue_id: queueId } : void 0;
-  } catch {
-    return void 0;
-  }
-}
-function nextQueued(dir) {
-  for (const queueId of entryIds(dir)) {
-    const entry = readEntry(dir, queueId);
-    if (entry)
-      return entry;
-    removeQueued(dir, queueId);
-  }
-  return void 0;
-}
-function publish(dir, queueId, entry) {
-  publishByRename(entryPath(dir, queueId), JSON.stringify(entry), QUEUE_TEMP_SUFFIX, PRIVATE_FILE_MODE);
-}
-function trim(dir) {
-  const ids = entryIds(dir);
-  for (const queueId of ids.slice(0, Math.max(0, ids.length - QUEUE_MAX_ENTRIES))) {
-    removeQueued(dir, queueId);
-  }
-}
-async function enqueueRun(stateFilePath, sessionId, run, tracing, origin, record, where) {
-  const dir = queueSessionDir(stateFilePath, sessionId);
-  const queueId = `${String(Date.now()).padStart(QUEUE_ID_TIME_WIDTH, "0")}-${randomUUID2()}`;
-  try {
-    mkdirSync6(dir, { recursive: true, mode: PRIVATE_DIR_MODE });
-    publish(dir, queueId, {
-      tracing,
-      attempts: 0,
-      origin,
-      record,
-      where,
-      run: runConfigForMode(run, tracing)
-    });
-    trim(dir);
-    debug(`Queued run for upload in ${entryPath(dir, queueId)}`);
-  } catch (err) {
-    warn(`Could not queue run for upload: ${err}`);
-  }
-}
-function abandonQueued(entry) {
-  if (entry.record && typeof entry.run.id === "string")
-    recordDelivered(entry.record, entry.run.id);
-}
-function removeQueued(dir, queueId) {
-  try {
-    unlinkSync4(entryPath(dir, queueId));
-  } catch {
-  }
-}
-function recordFailure2(dir, queueId) {
-  const entry = readEntry(dir, queueId);
-  if (!entry)
-    return;
-  const attempts = (entry.attempts ?? 0) + 1;
-  if (attempts >= QUEUE_MAX_ATTEMPTS) {
-    warn(`Dropping a queued run after ${attempts} failed uploads: ${queueId}`);
-    abandonQueued(entry);
-    removeQueued(dir, queueId);
-    return;
-  }
-  try {
-    publish(dir, queueId, {
-      tracing: entry.tracing,
-      attempts,
-      origin: entry.origin,
-      record: entry.record,
-      where: entry.where,
-      run: entry.run
-    });
-  } catch (err) {
-    warn(`Could not record a failed upload: ${err}`);
-  }
-}
-function discardEmptyQueue(dir, now = Date.now()) {
-  if (entryIds(dir).length > 0)
-    return;
-  if (queueIdleMs(dir, now) < EMPTY_QUEUE_MIN_IDLE_MS)
-    return;
-  for (const name of names(dir).filter((entry) => entry.endsWith(QUEUE_TEMP_SUFFIX))) {
-    try {
-      unlinkSync4(join6(dir, name));
-    } catch {
-    }
-  }
-  discardDirIfEmpty(dir);
-}
-function queueIdleMs(dir, now = Date.now()) {
-  try {
-    return now - statSync5(dir).mtimeMs;
-  } catch {
-    return 0;
-  }
-}
-function queuedAtMs(queueId) {
-  const queuedAt = Number(queueId.slice(0, QUEUE_ID_TIME_WIDTH));
-  return Number.isFinite(queuedAt) && queuedAt > 0 ? queuedAt : void 0;
-}
-function oldestQueuedAtMs(dir) {
-  const [oldest] = entryIds(dir);
-  return oldest === void 0 ? void 0 : queuedAtMs(oldest);
-}
-function foreignQueueLooksAbandoned(dir, now = Date.now()) {
-  const queuedAt = oldestQueuedAtMs(dir);
-  if (queuedAt === void 0)
-    return false;
-  return now - queuedAt >= FOREIGN_QUEUE_MIN_RECORD_AGE_MS;
-}
-function runIsTooOldToUpload(entry, now = Date.now()) {
-  const started = new Date(entry.run.start_time).getTime();
-  if (Number.isFinite(started))
-    return now - started >= QUEUE_RUN_MAX_AGE_MS;
-  const queuedAt = queuedAtMs(entry.queue_id);
-  return queuedAt === void 0 || now - queuedAt >= QUEUE_RUN_MAX_AGE_MS;
-}
-
-// dist/src/reconcile.js
-function attributionOf(metadata) {
-  const carried = {};
-  for (const key of REPOSITORY_METADATA_KEYS) {
-    const value = metadata?.[key];
-    if (typeof value === "string" && value.length > 0)
-      carried[key] = value;
-  }
-  return carried;
-}
-var namesARepository = (carried) => carried[REPOSITORY_NAME_KEY] !== void 0;
-var everyChildLanded = (record) => record.children.every((child) => record.delivered.has(child.run_id));
-function turnAttribution(record) {
-  const root = attributionOf(record.root?.metadata);
-  const inToolCallOrder = [...record.children].sort((left, right) => left.dotted_order < right.dotted_order ? -1 : 1).map((child) => attributionOf(child.metadata));
-  const source = namesARepository(root) ? root : inToolCallOrder.find((carried) => namesARepository(carried));
-  const knowsWhoWorkedInSource = (carried) => carried[ATTRIBUTION_IDENTIFIER_KEY] !== void 0 && carried[REPOSITORY_NAME_KEY] === source?.[REPOSITORY_NAME_KEY];
-  const author = root[ATTRIBUTION_IDENTIFIER_KEY] ?? source?.[ATTRIBUTION_IDENTIFIER_KEY] ?? inToolCallOrder.find(knowsWhoWorkedInSource)?.[ATTRIBUTION_IDENTIFIER_KEY];
-  const filled = { ...source };
-  if (author !== void 0)
-    filled[ATTRIBUTION_IDENTIFIER_KEY] = author;
-  return Object.keys(filled).length > 0 ? filled : void 0;
-}
-function metadataAfterFill(run, filled) {
-  const carried = attributionOf(run.metadata);
-  const workedOutItsOwn = namesARepository(carried) && carried[REPOSITORY_NAME_KEY] !== filled[REPOSITORY_NAME_KEY];
-  if (workedOutItsOwn)
-    return void 0;
-  const missing = Object.entries(filled).filter(([key]) => carried[key] === void 0);
-  if (missing.length === 0)
-    return void 0;
-  return { ...run.metadata, ...Object.fromEntries(missing) };
-}
-function settledTurnMetadata(base, record) {
-  if (!record?.root)
-    return base;
-  const filled = turnAttribution({ ...record, root: { ...record.root, metadata: base ?? {} } });
-  if (!filled)
-    return base;
-  const missing = Object.entries(filled).filter(([key]) => base?.[key] === void 0);
-  return missing.length === 0 ? base : { ...base, ...Object.fromEntries(missing) };
-}
-function settledFromTurn(options) {
-  const { base, stateFilePath, sessionId, turnRunId } = options;
-  if (!turnRunId)
-    return base;
-  const record = readTurnRecord(turnRecordPath(stateFilePath, sessionId, turnRunId));
-  if (!record || !everyChildLanded(record))
-    return base;
-  return settledTurnMetadata(base, record) ?? base;
-}
-function attributionFiller(target) {
-  const record = target ? readTurnRecord(target.path) : void 0;
-  return (metadata) => settledTurnMetadata(metadata, record) ?? metadata;
-}
-function runConfig(run, metadata, client2, replicas2) {
-  return {
-    client: client2,
-    replicas: replicas2,
-    id: run.run_id,
-    name: run.name,
-    run_type: run.run_type,
-    project_name: run.project_name,
-    start_time: run.start_time,
-    end_time: run.end_time,
-    parent_run_id: run.parent_run_id,
-    trace_id: run.trace_id,
-    dotted_order: run.dotted_order,
-    extra: { metadata }
-  };
-}
-function alreadyUpdated(failure) {
-  const status = failure?.status;
-  return status === UPDATE_ALREADY_RECEIVED_STATUS;
-}
-function tooOldToUpload(record, now) {
-  const started = new Date(record.root?.start_time ?? "").getTime();
-  return Number.isFinite(started) && now - started >= QUEUE_RUN_MAX_AGE_MS;
-}
-async function reconcileTurn(options) {
-  const { record, client: client2, replicas: replicas2, watch } = options;
-  const now = options.now ?? Date.now();
-  if (!record.root)
-    return true;
-  if (tooOldToUpload(record, now)) {
-    warn(`Dropping a turn record LangSmith will no longer accept: ${record.path}`);
-    return true;
-  }
-  if (!record.closed)
-    return false;
-  if (!everyChildLanded(record)) {
-    debug(`Waiting for the rest of ${record.path} to land before settling it`);
-    return false;
-  }
-  const filled = turnAttribution(record) ?? {};
-  const stillOpen = record.children.filter((child) => child.open && record.delivered.has(child.run_id));
-  let settled = true;
-  for (const run of [record.root, ...stillOpen]) {
-    if (record.fixed.has(run.run_id))
-      continue;
-    const metadata = metadataAfterFill(run, filled) ?? run.metadata;
-    const runTree = createRunTree(runConfig(run, metadata, client2, replicas2), run.tracing);
-    await runTree.patchRun({ excludeInputs: true });
-    const failure = watch.failure();
-    if (failure && !alreadyUpdated(failure)) {
-      warn(`Could not settle the repository on run ${run.run_id}: ${failure}`);
-      settled = false;
-      continue;
-    }
-    recordReconciled(record.path, run.run_id);
-    debug(`Settled the repository and author on run ${run.run_id}`);
-  }
-  return settled;
-}
-async function reconcileAndClear(options) {
-  if (await reconcileTurn(options))
-    discardTurnRecord(options.record.path);
-}
-
-// dist/src/repo-attribution.js
-import { isAbsolute as isAbsolute2 } from "node:path";
-
-// dist/src/repo-attribution-paths.js
-import { existsSync as existsSync4, statSync as statSync6 } from "node:fs";
-import { dirname as dirname5, isAbsolute, join as join7, resolve as resolve2 } from "node:path";
-function toolPathFromInput(toolInput, sessionCwd) {
-  if (!toolInput || typeof toolInput !== "object" || Array.isArray(toolInput)) {
-    return { namedAPath: false };
-  }
-  const input = toolInput;
-  let namedAPath = false;
-  for (const key of TOOL_PATH_INPUT_KEYS) {
-    const value = input[key];
-    if (typeof value !== "string" || value.length === 0)
-      continue;
-    namedAPath = true;
-    if (isAbsolute(value))
-      return { path: value, namedAPath };
-    if (!sessionCwd || !isAbsolute(sessionCwd))
-      continue;
-    const resolved = resolve2(sessionCwd, value);
-    if (existsSync4(resolved))
-      return { path: resolved, namedAPath };
-  }
-  return { namedAPath };
-}
-function nearestExistingDirectory(path3) {
-  let current = path3;
-  for (; ; ) {
-    const parent = dirname5(current);
-    const reachedFilesystemRoot = parent === current;
-    if (reachedFilesystemRoot)
-      return void 0;
-    try {
-      if (statSync6(current).isDirectory())
-        return current;
-    } catch {
-    }
-    current = parent;
-  }
-}
-function gitMarkerAt(directory) {
-  try {
-    return statSync6(join7(directory, GIT_DIRECTORY_NAME)).isDirectory() ? GIT_MARKERS.REPOSITORY_ROOT : GIT_MARKERS.ONLY_GIT_CAN_SAY;
-  } catch {
-    return GIT_MARKERS.NOTHING_HERE;
-  }
-}
-function rootFromGitMarker(directory) {
-  let current = resolve2(directory);
-  for (; ; ) {
-    const marker = gitMarkerAt(current);
-    if (marker === GIT_MARKERS.REPOSITORY_ROOT)
-      return current;
-    if (marker === GIT_MARKERS.ONLY_GIT_CAN_SAY)
-      return void 0;
-    const parent = dirname5(current);
-    const reachedFilesystemRoot = parent === current;
-    if (reachedFilesystemRoot)
-      return null;
-    current = parent;
-  }
-}
-
-// dist/src/repo-attribution.js
-var rootByDirectory = /* @__PURE__ */ new Map();
-var attributionByRoot = /* @__PURE__ */ new Map();
-var identifierByRoot = /* @__PURE__ */ new Map();
-function rootForPath(path3) {
-  const directory = nearestExistingDirectory(path3);
-  if (!directory)
-    return void 0;
-  if (rootByDirectory.has(directory))
-    return rootByDirectory.get(directory);
-  const walked = rootFromGitMarker(directory);
-  const onlyGitCanSay = walked === void 0;
-  const root = onlyGitCanSay ? getRepoRoot(directory) : walked;
-  rootByDirectory.set(directory, root);
-  return root;
-}
-function isSessionsOwnRepository(sessionCwd, root) {
-  return sessionCwd ? rootForPath(sessionCwd) === root : false;
-}
-function withoutPinnedKeys(attribution, pinned) {
-  if (pinned.size === 0)
-    return { ...attribution };
-  return Object.fromEntries(Object.entries(attribution).filter(([key]) => !pinned.has(key)));
-}
-function withoutRepositoryKeys(base, pinned) {
-  const stripped = { ...base };
-  for (const key of REPOSITORY_METADATA_KEYS) {
-    if (!pinned.has(key))
-      delete stripped[key];
-  }
-  return stripped;
-}
-function identifierForRoot(root) {
-  const cached = identifierByRoot.get(root);
-  if (cached)
-    return cached;
-  const userName = getGitUserName(root);
-  const identifier = userName ? { ls_attribution_identifier: userName } : {};
-  identifierByRoot.set(root, identifier);
-  return identifier;
-}
-function attributionForRoot(root) {
-  const cached = attributionByRoot.get(root);
-  if (cached)
-    return cached;
-  const attribution = { ...identifierForRoot(root) };
-  const repoName = getRepoName(root);
-  if (repoName) {
-    attribution.repository_name = repoName.name;
-    attribution.repository_provider = repoName.provider;
-    const url = getRepoUrl(repoName.provider, repoName.name);
-    if (url)
-      attribution.repository_url = url;
-  }
-  const gitInfo = getGitInfo(root);
-  if (gitInfo.branch)
-    attribution.git_branch = gitInfo.branch;
-  if (gitInfo.commit)
-    attribution.git_commit_sha = gitInfo.commit;
-  attributionByRoot.set(root, attribution);
-  return attribution;
-}
-function withSessionAuthor(base, sessionRoot) {
-  if (base?.ls_attribution_identifier !== void 0)
-    return base;
-  return { ...base, ...identifierForRoot(sessionRoot) };
-}
-function sessionScopedMetadata(base, sessionCwd) {
-  const sessionRoot = sessionCwd ? rootForPath(sessionCwd) : void 0;
-  return typeof sessionRoot === "string" ? withSessionAuthor(base, sessionRoot) : base;
-}
-function scopedToPath(base, lookup, sessionCwd, pinned) {
-  const { path: toolPath, namedAPath } = lookup;
-  const namedSomewhereNothingSits = namedAPath && !toolPath;
-  if (namedSomewhereNothingSits)
-    return base;
-  const path3 = toolPath ?? sessionCwd;
-  if (!path3 || !isAbsolute2(path3))
-    return base;
-  const root = rootForPath(path3);
-  const gitCouldNotAnswer = root === void 0;
-  if (gitCouldNotAnswer)
-    return base;
-  const pathIsInNoRepository = root === null;
-  if (pathIsInNoRepository)
-    return withoutRepositoryKeys(base, pinned);
-  if (isSessionsOwnRepository(sessionCwd, root)) {
-    return { ...base, ...withoutPinnedKeys(identifierForRoot(root), pinned) };
-  }
-  return {
-    ...withoutRepositoryKeys(base, pinned),
-    ...withoutPinnedKeys(attributionForRoot(root), pinned)
-  };
-}
-function repoScopedMetadata(base, toolInput, sessionCwd) {
-  return scopedToPath(base, toolPathFromInput(toolInput, sessionCwd), sessionCwd, pinnedRepositoryKeys(base));
-}
-var awaitsTheTurn = (metadata) => !metadata?.[REPOSITORY_NAME_KEY] || !metadata?.[ATTRIBUTION_IDENTIFIER_KEY];
-function toolOrigin(toolInput, sessionCwd) {
-  return { cwd: sessionCwd, ...toolPathFromInput(toolInput, sessionCwd) };
-}
-function withSessionRepository(base, sessionCwd) {
-  const sessionRoot = sessionCwd ? rootForPath(sessionCwd) : void 0;
-  if (typeof sessionRoot !== "string")
-    return base;
-  return { ...attributionForRoot(sessionRoot), ...base };
-}
-function settledRepositoryMetadata(base, origin) {
-  const pinned = new Set(REPOSITORY_METADATA_KEYS.filter((key) => base?.[key] !== void 0));
-  const sessionScoped = withSessionRepository(base, origin.cwd);
-  return scopedToPath(sessionScoped, { path: origin.path, namedAPath: origin.namedAPath }, origin.cwd, pinned);
-}
-function settledRunConfig(run, origin) {
-  const extra = run.extra;
-  const metadata = settledRepositoryMetadata(extra?.metadata, origin) ?? extra?.metadata ?? {};
-  const settled = { ...run, extra: { ...extra, metadata } };
-  const open3 = awaitsTheTurn(metadata);
-  if (open3)
-    delete settled.end_time;
-  return { run: settled, open: open3 };
-}
-function turnScopedMetadata(base, toolInputs, sessionCwd) {
-  const sessionRoot = sessionCwd ? rootForPath(sessionCwd) : void 0;
-  if (typeof sessionRoot === "string")
-    return withSessionAuthor(base, sessionRoot);
-  for (const toolInput of toolInputs) {
-    const { path: path3 } = toolPathFromInput(toolInput, sessionCwd);
-    if (!path3)
-      continue;
-    const landedInRepository = typeof rootForPath(path3) === "string";
-    if (landedInRepository)
-      return repoScopedMetadata(base, toolInput, sessionCwd);
-  }
-  return base;
-}
-
-// dist/src/upload-confirm.js
-function watchUploads(client2) {
-  let failure;
-  const createRun = client2.createRun.bind(client2);
-  const updateRun = client2.updateRun.bind(client2);
-  client2.createRun = async (...args) => {
-    try {
-      return await createRun(...args);
-    } catch (err) {
-      failure = err;
-      throw err;
-    }
-  };
-  client2.updateRun = async (...args) => {
-    try {
-      return await updateRun(...args);
-    } catch (err) {
-      failure = err;
-      throw err;
-    }
-  };
-  return {
-    failure() {
-      const seen = failure;
-      failure = void 0;
-      return seen;
-    }
-  };
-}
-
-// dist/src/utils/file-lock.js
-import { readFileSync as readFileSync8, writeFileSync as writeFileSync4, linkSync, mkdirSync as mkdirSync7, unlinkSync as unlinkSync5 } from "node:fs";
-import { dirname as dirname6 } from "node:path";
-import { randomUUID as randomUUID3 } from "node:crypto";
-function lockPath(stateFilePath) {
-  return `${stateFilePath}.lock`;
-}
-function releaseLock(stateFilePath) {
-  try {
-    unlinkSync5(lockPath(stateFilePath));
-  } catch {
-  }
-}
-function claimLock(lock) {
-  const staging = `${lock}.${randomUUID3()}${LOCK_STAGING_SUFFIX}`;
-  try {
-    writeFileSync4(staging, String(process.pid), { mode: PRIVATE_FILE_MODE });
-  } catch {
-    return false;
-  }
-  try {
-    linkSync(staging, lock);
-    return true;
-  } catch {
-    return false;
-  } finally {
-    try {
-      unlinkSync5(staging);
-    } catch {
-    }
-  }
-}
-function holderIsGone(lock) {
-  let pid;
-  try {
-    pid = Number(readFileSync8(lock, "utf-8"));
-  } catch {
-    return false;
-  }
-  if (!Number.isInteger(pid) || pid <= 0)
-    return false;
-  try {
-    process.kill(pid, 0);
-    return false;
-  } catch (err) {
-    return err.code !== "EPERM";
-  }
-}
-function tryAcquireLock(filePath) {
-  const lock = lockPath(filePath);
-  try {
-    mkdirSync7(dirname6(filePath), { recursive: true });
-  } catch {
-    return false;
-  }
-  if (claimLock(lock))
-    return true;
-  if (!holderIsGone(lock))
-    return false;
-  try {
-    unlinkSync5(lock);
-  } catch {
-    return false;
-  }
-  return claimLock(lock);
-}
-
-// dist/src/hooks/flush-queue.js
-function flusherClient(config) {
-  const anonymizer = config.redact ? createSecretAnonymizer(config.redactExtraRules ? { extraRules: config.redactExtraRules } : void 0) : void 0;
-  return new Client({
-    apiKey: config.apiKey || void 0,
-    apiUrl: config.apiBaseUrl,
-    anonymizer,
-    autoBatchTracing: false
-  });
-}
-function writeBack(entry, settled) {
-  if (!entry.record || typeof entry.run.id !== "string")
-    return true;
-  const wrote = entry.where ? recordRun({
-    path: entry.record,
-    run: settled.run,
-    tracing: entry.tracing,
-    origin: entry.origin,
-    closesAt: settled.open ? entry.run.end_time : void 0
-  }) : true;
-  return wrote && recordDelivered(entry.record, entry.run.id);
-}
-async function uploadQueued(dir, config, origin, client2, watch) {
-  for (; ; ) {
-    const entry = nextQueued(dir);
-    if (!entry)
-      break;
-    if (runIsTooOldToUpload(entry)) {
-      warn(`Dropping a queued run LangSmith will no longer accept: ${entry.queue_id}`);
-      abandonQueued(entry);
-      removeQueued(dir, entry.queue_id);
-      continue;
-    }
-    if (entry.origin !== origin) {
-      warn(`Leaving ${dir} alone: its next run was queued for a different LangSmith account`);
-      return false;
-    }
-    const settled = entry.where ? settledRunConfig(entry.run, entry.where) : { run: entry.run, open: false };
-    const runTree = createRunTree({ ...settled.run, client: client2, replicas: config.replicas }, entry.tracing);
-    await runTree.postRun();
-    const failure = watch.failure();
-    if (failure) {
-      warn(`Queued run upload failed: ${failure}`);
-      recordFailure2(dir, entry.queue_id);
-      return false;
-    }
-    if (!writeBack(entry, settled)) {
-      warn(`Could not write ${String(entry.run.id)} back to its turn record`);
-      recordFailure2(dir, entry.queue_id);
-      return false;
-    }
-    removeQueued(dir, entry.queue_id);
-  }
-  discardEmptyQueue(dir);
-  return true;
-}
-async function settleTurns(recordDir, config, origin, client2, watch) {
-  for (const path3 of listTurnRecords(recordDir)) {
-    const record = readTurnRecord(path3);
-    if (!record)
-      continue;
-    if (record.origin !== origin) {
-      debug(`Leaving ${path3} alone: it was traced for a different LangSmith account`);
-      continue;
-    }
-    try {
-      await reconcileAndClear({ record, client: client2, replicas: config.replicas, watch });
-    } catch (err) {
-      warn(`Could not settle the repository on ${path3}: ${err}`);
-    }
-  }
-  discardDirIfEmpty(recordDir);
-}
-async function drainSession(session, config, origin) {
-  const dir = join8(queueDir(config.stateFilePath), session);
-  const flushTarget = `${dir}.flush`;
-  if (!tryAcquireLock(flushTarget)) {
-    debug(`Another flusher already owns ${dir}`);
-    return;
-  }
-  const client2 = flusherClient(config);
-  const watch = watchUploads(client2);
-  const records = join8(turnRecordRoot(config.stateFilePath), session);
-  try {
-    await uploadQueued(dir, config, origin, client2, watch);
-    await settleTurns(records, config, origin, client2, watch);
-  } finally {
-    releaseLock(flushTarget);
-  }
-}
-function looksAbandoned(session, stateFilePath) {
-  const queued = join8(queueDir(stateFilePath), session);
-  if (foreignQueueLooksAbandoned(queued))
-    return true;
-  return recordsIdleMs(join8(turnRecordRoot(stateFilePath), session)) >= FOREIGN_QUEUE_MIN_RECORD_AGE_MS;
-}
-async function main(cwd, sessionId) {
-  const config = initHook(cwd);
-  if (!config)
-    return;
-  const own = sessionId ? safeName(sessionId) : void 0;
-  const origin = queueOrigin(config);
-  const sessions = /* @__PURE__ */ new Set([
-    ...listQueues(config.stateFilePath),
-    ...listRecordedSessions(config.stateFilePath)
-  ]);
-  if (own)
-    sessions.add(own);
-  for (const session of [...sessions].sort()) {
-    if (session !== own && !looksAbandoned(session, config.stateFilePath)) {
-      debug(`Not flushing ${session}, which another session may still be writing to`);
-      discardEmptyQueue(join8(queueDir(config.stateFilePath), session));
-      continue;
-    }
-    try {
-      await drainSession(session, config, origin);
-    } catch (err) {
-      warn(`Could not flush ${session}: ${err}`);
-    }
-  }
-}
-
-// dist/src/tracing-policy.js
-import { mkdir as mkdir6 } from "node:fs/promises";
-import { dirname as dirname16 } from "node:path";
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/utils/errors.js
-function describe(error2) {
-  return error2 instanceof Error ? error2.message : String(error2);
-}
-function errorCode(error2) {
-  return error2 !== null && typeof error2 === "object" && "code" in error2 && typeof error2.code === "string" ? error2.code : void 0;
-}
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/plugin/constants.js
-var POLICY_LOCK_TIMEOUT_MS = 2e3;
-var POLICY_LOCK_TIMEOUT_ERROR = "Timed out waiting for tracing preference lock";
-var POLICY_LOCK_TIMEOUT_MESSAGE = "Retry; if it persists, remove the lock only after confirming no preference writer is running.";
-var POLICY_UNREADABLE_MESSAGE = "Refusing to overwrite them; repair the file or its permissions before retrying. No preferences were changed.";
-var POLICY_NOT_REGULAR_MESSAGE = "Tracing preferences must be a regular, non-symlink file";
-var POLICY_ASYNC_UPDATE_MESSAGE = "A policy update must change the policy synchronously";
-var POLICY_FILE_MODE = 384;
-var POLICY_FILE_ENCODING = "utf8";
-var POLICY_TEMP_CREATE_FLAG = "wx";
-var POLICY_DIRECTORY_OPEN_FLAG = "r";
-var POLICY_WARNING_SEPARATOR = "; ";
-var POLICY_TEMP_CLOSE_WARNING = "Temporary file close failed";
-var POLICY_TEMP_CLEANUP_WARNING = "Temporary file cleanup failed";
-var POLICY_DIRECTORY_CLOSE_WARNING = "Directory close cleanup failed";
-var POLICY_LOCK_CLEANUP_FAILED_PREFIX = "Preference lock cleanup failed at";
-var POLICY_CANNOT_READ_PREFIX = "Cannot read tracing preferences at";
-var POLICY_DURABILITY_WARNING = "Preference is effective, but crash durability could not be confirmed; retry saving";
-var POLICY_LOCK_RELEASE_WARNING = "Before retrying, remove the lock only after confirming no preference writer is running";
-var WORKER_LOG_MAX_BYTES = 1024 * 1024;
-var POLICY_PARSE_RESULT_MESSAGE = "A policy parser must return a policy";
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/plugin/policy-file.js
-import { randomUUID as randomUUID6 } from "node:crypto";
-import { lstatSync as lstatSync2, readFileSync as readFileSync9 } from "node:fs";
-import { open, rename as rename4, unlink as unlink4 } from "node:fs/promises";
-import { dirname as dirname10 } from "node:path";
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/utils/files/cleanup.js
-import { rmdir, unlink as unlink2 } from "node:fs/promises";
-import { dirname as dirname7 } from "node:path";
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/utils/constants.js
-var FILE_MISSING_CODE = "ENOENT";
-var PROCESS_MISSING_CODE = "ESRCH";
-var PROCESS_CHECK_SIGNAL = 0;
-var WINDOWS_PLATFORM = "win32";
-var FILE_EXISTS_CODE = "EEXIST";
-var PERMISSION_DENIED_CODE = "EPERM";
-var FILE_ACCESS_DENIED_CODE = "EACCES";
-var FILE_BUSY_CODE = "EBUSY";
-var DIRECTORY_NOT_EMPTY_CODE = "ENOTEMPTY";
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/utils/files/cleanup-constants.js
-var CLEANUP_IGNORED_DIRECTORY_CODES = [
-  FILE_MISSING_CODE,
-  DIRECTORY_NOT_EMPTY_CODE,
-  FILE_EXISTS_CODE,
-  PERMISSION_DENIED_CODE,
-  FILE_BUSY_CODE,
-  FILE_ACCESS_DENIED_CODE
-];
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/utils/files/cleanup.js
-async function removeDirectoryBestEffort(path3, warning) {
-  try {
-    await rmdir(path3);
-  } catch (error2) {
-    if (errorCode(error2) !== FILE_MISSING_CODE)
-      console.warn(warning, describe(error2));
-  }
-}
-async function removeEmptyAncestors(directory, root) {
-  for (let current = directory; current !== root && current !== dirname7(current); ) {
-    try {
-      await rmdir(current);
-    } catch (error2) {
-      const code = errorCode(error2);
-      if (CLEANUP_IGNORED_DIRECTORY_CODES.some((ignored) => ignored === code))
-        return;
-      throw error2;
-    }
-    current = dirname7(current);
-  }
-}
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/constants.js
-var FILE_LOCK_CLAIM_VERSION = 1;
-var FILE_LOCK_CLAIM_EXTENSION = ".json";
-var FILE_LOCK_DIRECTORY_SUFFIX = ".claims";
-var FILE_LOCK_LEGACY_DIRECTORY_SUFFIX = ".lock";
-var FILE_LOCK_TIMEOUT_ERROR_NAME = "FileLockTimeoutError";
-var FILE_LOCK_TEMP_PREFIX = ".";
-var FILE_LOCK_TEMP_SUFFIX = ".tmp";
-var FILE_LOCK_EXCLUSIVE_FLAG = "wx";
-var FILE_LOCK_ENCODING = "utf-8";
-var FILE_LOCK_DEFAULT_TIMEOUT_MS = 5e3;
-var FILE_LOCK_POLL_INTERVAL_MS = 10;
-var FILE_LOCK_DIRECTORY_MODE = 448;
-var FILE_LOCK_FILE_MODE = 384;
-var FILE_LOCK_UNSELECTED_TICKET = 0;
-var FILE_LOCK_NEGATIVE_TICKET_LIMIT = 0;
-var FILE_LOCK_TIMEOUT_MESSAGE = "Timed out waiting for file lock";
-var FILE_LOCK_TICKET_LIMIT_MESSAGE = "File lock ticket limit reached";
-var FILE_LOCK_RELEASE_MESSAGE = "Could not release file lock claim";
-var FILE_LOCK_INVALID_TIMEOUT_MESSAGE = "timeoutMs must be a finite positive number";
-var FILE_LOCK_ACQUIRE_MESSAGE = "Could not acquire file lock claim";
-var FILE_LOCK_UNSAFE_DIRECTORY_MESSAGE = "Unsafe file lock claims directory";
-var FILE_LOCK_RENAME_RETRY_TIMEOUT_MS = 100;
-var FILE_LOCK_HEARTBEAT_MS = 500;
-var FILE_LOCK_STALE_CLAIM_MS = 3e3;
-var FILE_LOCK_TRY_CHOOSING_WAIT_MS = 1e3;
-var FILE_LOCK_DIRECTORY_CONTENTION_CODES = [
-  PERMISSION_DENIED_CODE,
-  FILE_ACCESS_DENIED_CODE
-];
-var FILE_LOCK_BUSY_FILE_CODES = [
-  ...FILE_LOCK_DIRECTORY_CONTENTION_CODES,
-  FILE_BUSY_CODE
-];
-var FILE_LOCK_HEARTBEAT_WARNING = "Could not refresh a file lock claim:";
-var FILE_LOCK_COMPATIBLE_ACQUIRE_CLEANUP_MESSAGE = "Could not release the legacy lock gate after shared lock acquisition failed";
-var FILE_LOCK_COMPATIBLE_RELEASE_MESSAGE = "Could not release compatible file lock";
-var FILE_LOCK_COMPATIBLE_GATE_CHANGED_MESSAGE = "Legacy file lock gate changed before release";
-var FILE_LOCK_COMPATIBLE_OWNER_FILE = "owner";
-var FILE_LOCK_COMPATIBLE_OWNER_MESSAGE = "Could not record the legacy file lock gate owner";
-var FILE_LOCK_COMPATIBLE_OWNER_PID_PATTERN = /^[1-9]\d*$/u;
-var FILE_LOCK_COMPATIBLE_ABANDONED_GATE_MS = 5e3;
-var FILE_LOCK_COMPATIBLE_STALE_SUFFIX = ".stale";
-var FILE_LOCK_GATE_CLEANUP_WARNING = "Could not remove a half-created lock folder:";
-var FILE_LOCK_STALE_GATE_CLEANUP_WARNING = "Could not remove an old lock folder:";
-var STORAGE_STALE_FILE_MAX_AGE_MS = 2 * 60 * 60 * 1e3;
-var FILE_LOCK_LOST_MESSAGE = "The file lock was taken over before the write finished";
-var STORAGE_UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
-var STORAGE_ENGINE_FILE_PATTERNS = [
-  new RegExp(`^\\.${STORAGE_UUID}(\\.${STORAGE_UUID})?\\.tmp$`, "u"),
-  new RegExp(`^wake-[0-9a-f]{64}\\.active\\.${STORAGE_UUID}(\\.attempt\\.[1-9]\\d*)?\\.json$`, "u"),
-  /^wake-[0-9a-f]{64}\.launching$/u
-];
-var STORAGE_CLAIM_FILE = new RegExp(`^${STORAGE_UUID}\\.json$`, "u");
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/lock-folders.js
-async function removeEmptyLockFolders(lockPath2, root) {
-  await removeEmptyAncestors(`${lockPath2}${FILE_LOCK_DIRECTORY_SUFFIX}`, root);
-}
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/file-lock.js
-import { chmod, link, lstat as lstat2, mkdir as mkdir4, readFile as readFile2, readdir as readdir3, rename as rename3, writeFile as writeFile3 } from "node:fs/promises";
-import { performance as performance4 } from "node:perf_hooks";
-import { setTimeout as delay } from "node:timers/promises";
-import { randomUUID as randomUUID5 } from "node:crypto";
-import { dirname as dirname9, join as join10, resolve as resolve4 } from "node:path";
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/capture/constants.js
-var CAPTURE_TURN_CEILING_MS = 7 * 24 * 60 * 60 * 1e3;
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/utils/validation/objects.js
-function isPlainRecord(value) {
-  return value !== null && typeof value === "object" && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
-}
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/errors.js
-import { resolve as resolve3 } from "node:path";
-var FileLockTimeoutError = class extends Error {
-  blockedPath;
-  constructor(blockedPath) {
-    super(`${FILE_LOCK_TIMEOUT_MESSAGE}: ${resolve3(blockedPath)}`);
-    this.name = FILE_LOCK_TIMEOUT_ERROR_NAME;
-    this.blockedPath = resolve3(blockedPath);
-  }
-};
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/file-lock-heartbeat.js
-import { utimes } from "node:fs/promises";
-var heartbeats = /* @__PURE__ */ new Map();
-function startHeartbeat(path3, id) {
-  const timer = setInterval(() => {
-    const now = /* @__PURE__ */ new Date();
-    utimes(path3, now, now).catch(warnUnlessMissing);
-  }, FILE_LOCK_HEARTBEAT_MS);
-  timer.unref();
-  heartbeats.set(id, timer);
-}
-function stopHeartbeat(id) {
-  clearInterval(heartbeats.get(id));
-  heartbeats.delete(id);
-}
-function warnUnlessMissing(error2) {
-  if (errorCode(error2) !== FILE_MISSING_CODE)
-    console.warn(FILE_LOCK_HEARTBEAT_WARNING, describe(error2));
-}
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/legacy-gate.js
-import { lstat, mkdir as mkdir3, readFile, rename as rename2, rmdir as rmdir2, writeFile as writeFile2 } from "node:fs/promises";
-import { performance as performance3 } from "node:perf_hooks";
-import { randomUUID as randomUUID4 } from "node:crypto";
-import { dirname as dirname8, join as join9 } from "node:path";
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/file-lock-support.js
-import { unlink as unlink3 } from "node:fs/promises";
-import { performance as performance2 } from "node:perf_hooks";
-function processIsAlive(pid) {
-  try {
-    process.kill(pid, PROCESS_CHECK_SIGNAL);
-    return true;
-  } catch (error2) {
-    if (errorCode(error2) === PROCESS_MISSING_CODE)
-      return false;
-    return void 0;
-  }
-}
-async function removeFile(filePath) {
-  try {
-    await unlink3(filePath);
-    return true;
-  } catch (error2) {
-    if (errorCode(error2) === FILE_MISSING_CODE)
-      return true;
-    return false;
-  }
-}
-function isBusyFileError(error2) {
-  return FILE_LOCK_BUSY_FILE_CODES.includes(errorCode(error2) ?? "");
-}
-function timeoutMs(options) {
-  const value = options?.timeoutMs ?? FILE_LOCK_DEFAULT_TIMEOUT_MS;
-  if (!Number.isFinite(value) || value <= 0)
-    throw new RangeError(FILE_LOCK_INVALID_TIMEOUT_MESSAGE);
-  return value;
-}
-function waitForNextScan(deadline, blockedPath) {
-  const remaining = deadline - performance2.now();
-  if (remaining <= 0)
-    return Promise.reject(new FileLockTimeoutError(blockedPath));
-  return new Promise((resolvePromise) => setTimeout(resolvePromise, Math.min(FILE_LOCK_POLL_INTERVAL_MS, remaining)));
-}
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/legacy-gate.js
-async function createLegacyGate(gatePath) {
-  await mkdir3(gatePath, { mode: FILE_LOCK_DIRECTORY_MODE });
-  const stat3 = await lstat(gatePath);
-  if (!stat3.isDirectory())
-    throw new Error(FILE_LOCK_COMPATIBLE_GATE_CHANGED_MESSAGE);
-  await recordLegacyGateOwner(gatePath);
-  startHeartbeat(join9(gatePath, FILE_LOCK_COMPATIBLE_OWNER_FILE), gatePath);
-  return { path: gatePath, dev: stat3.dev, ino: stat3.ino, birthtimeMs: stat3.birthtimeMs };
-}
-async function waitOutContention(attempt, error2) {
-  const { gatePath, filePath, deadline, tryAcquire } = attempt;
-  const code = errorCode(error2);
-  const permissionDenied = FILE_LOCK_DIRECTORY_CONTENTION_CODES.includes(code ?? "");
-  if (code !== FILE_EXISTS_CODE && !permissionDenied)
-    throw error2;
-  let isContended = false;
-  try {
-    const gate = await lstat(gatePath);
-    const isDirectory = gate.isDirectory();
-    isContended = isDirectory || gate.isFile() && code === FILE_EXISTS_CODE;
-    if (isContended && await legacyGateIsAbandoned(gatePath, isDirectory, gate.mtimeMs)) {
-      if (!await reclaimLegacyGate(gatePath, filePath, tryAcquire))
-        await waitForNextScan(deadline, gatePath);
-      return;
-    }
-  } catch (statError) {
-    if (errorCode(statError) === FILE_MISSING_CODE) {
-      if (code === FILE_EXISTS_CODE) {
-        attempt.retriedMissingPermission = false;
-        await waitForNextScan(deadline, gatePath);
-        return;
-      }
-      if (permissionDenied && !attempt.retriedMissingPermission) {
-        attempt.retriedMissingPermission = true;
-        return;
-      }
-    }
-    throw error2;
-  }
-  if (!isContended)
-    throw error2;
-  attempt.retriedMissingPermission = false;
-  await waitForNextScan(deadline, gatePath);
-}
-async function acquireLegacyDirectoryGate(filePath, deadline, tryAcquire) {
-  const gatePath = `${filePath}${FILE_LOCK_LEGACY_DIRECTORY_SUFFIX}`;
-  await mkdir3(dirname8(filePath), { recursive: true, mode: FILE_LOCK_DIRECTORY_MODE });
-  const attempt = {
-    gatePath,
-    filePath,
-    deadline,
-    tryAcquire,
-    retriedMissingPermission: false
-  };
-  for (; ; ) {
-    if (performance3.now() >= deadline)
-      throw new FileLockTimeoutError(gatePath);
-    try {
-      return await createLegacyGate(gatePath);
-    } catch (error2) {
-      await waitOutContention(attempt, error2);
-    }
-  }
-}
-async function releaseLegacyDirectoryGate(gate) {
-  stopHeartbeat(gate.path);
-  let stat3;
-  try {
-    stat3 = await lstat(gate.path);
-  } catch (error2) {
-    if (errorCode(error2) === FILE_MISSING_CODE)
-      return;
-    throw error2;
-  }
-  if (!stat3.isDirectory() || stat3.dev !== gate.dev || stat3.ino !== gate.ino || stat3.birthtimeMs !== gate.birthtimeMs) {
-    throw new Error(FILE_LOCK_COMPATIBLE_GATE_CHANGED_MESSAGE);
-  }
-  await removeFile(join9(gate.path, FILE_LOCK_COMPATIBLE_OWNER_FILE));
-  await rmdir2(gate.path);
-}
-async function recordLegacyGateOwner(gatePath) {
-  try {
-    await writeFile2(join9(gatePath, FILE_LOCK_COMPATIBLE_OWNER_FILE), String(process.pid), {
-      flag: FILE_LOCK_EXCLUSIVE_FLAG,
-      mode: FILE_LOCK_FILE_MODE
-    });
-  } catch (error2) {
-    await removeDirectoryBestEffort(gatePath, FILE_LOCK_GATE_CLEANUP_WARNING);
-    throw new Error(FILE_LOCK_COMPATIBLE_OWNER_MESSAGE, { cause: error2 });
-  }
-}
-async function legacyGateIsAbandoned(gatePath, isDirectory, modifiedAtMs) {
-  let contents;
-  try {
-    contents = await readFile(isDirectory ? join9(gatePath, FILE_LOCK_COMPATIBLE_OWNER_FILE) : gatePath, FILE_LOCK_ENCODING);
-  } catch (error2) {
-    if (errorCode(error2) !== FILE_MISSING_CODE)
-      return false;
-    contents = "";
-  }
-  const pid = FILE_LOCK_COMPATIBLE_OWNER_PID_PATTERN.test(contents.trim()) ? Number(contents.trim()) : void 0;
-  if (pid !== void 0 && Number.isSafeInteger(pid) && pid > 0)
-    return processIsAlive(pid) === false || isDirectory && await ownerHeartbeatStopped(gatePath);
-  return !isDirectory && Date.now() - modifiedAtMs >= FILE_LOCK_COMPATIBLE_ABANDONED_GATE_MS;
-}
-async function ownerHeartbeatStopped(gatePath) {
-  try {
-    const owner = await lstat(join9(gatePath, FILE_LOCK_COMPATIBLE_OWNER_FILE));
-    return Date.now() - owner.mtimeMs >= FILE_LOCK_STALE_CLAIM_MS;
-  } catch {
-    return false;
-  }
-}
-async function reclaimLegacyGate(gatePath, filePath, tryAcquire) {
-  const takeover = await tryAcquire(filePath);
-  if (!takeover)
-    return false;
-  try {
-    let gate;
-    try {
-      gate = await lstat(gatePath);
-    } catch (error2) {
-      if (errorCode(error2) === FILE_MISSING_CODE)
-        return true;
-      throw error2;
-    }
-    const isDirectory = gate.isDirectory();
-    if (!await legacyGateIsAbandoned(gatePath, isDirectory, gate.mtimeMs))
-      return false;
-    const stalePath = `${gatePath}.${randomUUID4()}${FILE_LOCK_COMPATIBLE_STALE_SUFFIX}`;
-    try {
-      await rename2(gatePath, stalePath);
-    } catch (error2) {
-      if (isBusyFileError(error2))
-        return false;
-      throw error2;
-    }
-    if (!isDirectory) {
-      await removeFile(stalePath);
-      return true;
-    }
-    await removeFile(join9(stalePath, FILE_LOCK_COMPATIBLE_OWNER_FILE));
-    await removeDirectoryBestEffort(stalePath, FILE_LOCK_STALE_GATE_CLEANUP_WARNING);
-    return true;
-  } finally {
-    await takeover.release();
-  }
-}
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/file-lock.js
-function parseClaim(value, id) {
-  if (!isPlainRecord(value))
-    return void 0;
-  if (value.version !== FILE_LOCK_CLAIM_VERSION || value.id !== id || typeof value.pid !== "number" || !Number.isSafeInteger(value.pid) || value.pid <= 0 || typeof value.choosing !== "boolean" || typeof value.ticket !== "number" || !Number.isSafeInteger(value.ticket) || value.ticket < FILE_LOCK_NEGATIVE_TICKET_LIMIT || (value.choosing ? value.ticket !== FILE_LOCK_UNSELECTED_TICKET : value.ticket === FILE_LOCK_UNSELECTED_TICKET)) {
-    return void 0;
-  }
-  return value;
-}
-async function publishClaim(filePath, claim, create, deadline) {
-  const temporaryPath = join10(dirname9(filePath), `${FILE_LOCK_TEMP_PREFIX}${claim.id}.${randomUUID5()}${FILE_LOCK_TEMP_SUFFIX}`);
-  try {
-    await writeFile3(temporaryPath, JSON.stringify(claim), {
-      flag: FILE_LOCK_EXCLUSIVE_FLAG,
-      mode: FILE_LOCK_FILE_MODE
-    });
-    if (create)
-      await link(temporaryPath, filePath);
-    else {
-      const replacementDeadline = deadline ?? performance4.now() + FILE_LOCK_RENAME_RETRY_TIMEOUT_MS;
-      for (; ; ) {
-        try {
-          await rename3(temporaryPath, filePath);
-          break;
-        } catch (error2) {
-          if (errorCode(error2) !== PERMISSION_DENIED_CODE)
-            throw error2;
-          await waitForNextScan(replacementDeadline, dirname9(filePath));
-        }
-      }
-    }
-  } finally {
-    await removeFile(temporaryPath);
-  }
-}
-async function createClaim(claimDirectory) {
-  for (; ; ) {
-    const id = randomUUID5();
-    const claim = {
-      version: FILE_LOCK_CLAIM_VERSION,
-      id,
-      pid: process.pid,
-      choosing: true,
-      ticket: FILE_LOCK_UNSELECTED_TICKET
-    };
-    try {
-      const path3 = join10(claimDirectory, `${id}${FILE_LOCK_CLAIM_EXTENSION}`);
-      await publishClaim(path3, claim, true);
-      startHeartbeat(path3, id);
-      return claim;
-    } catch (error2) {
-      if (errorCode(error2) !== FILE_EXISTS_CODE)
-        throw error2;
-    }
-  }
-}
-async function scanClaims(claimDirectory, ownPath) {
-  const entries = await readdir3(claimDirectory, { withFileTypes: true });
-  const claims = [];
-  const reference = ownPath === void 0 ? void 0 : await modifiedAt(ownPath);
-  const abandoned = async (path3) => {
-    if (reference === void 0)
-      return false;
-    const modified = await modifiedAt(path3);
-    if (modified === void 0 || reference - modified < FILE_LOCK_STALE_CLAIM_MS)
-      return false;
-    return removeFile(path3);
-  };
-  for (const entry of entries) {
-    if (!entry.name.endsWith(FILE_LOCK_CLAIM_EXTENSION))
-      continue;
-    const id = entry.name.slice(0, -FILE_LOCK_CLAIM_EXTENSION.length);
-    const path3 = join10(claimDirectory, entry.name);
-    if (!entry.isFile())
-      return { claims, blocked: true };
-    let value;
-    try {
-      value = JSON.parse(await readFile2(path3, FILE_LOCK_ENCODING));
-    } catch (error2) {
-      if (errorCode(error2) === FILE_MISSING_CODE)
-        continue;
-      if (await abandoned(path3))
-        continue;
-      return {
-        claims,
-        blocked: true,
-        transient: isBusyFileError(error2)
-      };
-    }
-    const claim = parseClaim(value, id);
-    if (!claim) {
-      if (await abandoned(path3))
-        continue;
-      return { claims, blocked: true };
-    }
-    const alive = processIsAlive(claim.pid);
-    if (alive === false) {
-      if (!await removeFile(path3))
-        return { claims, blocked: true };
-      continue;
-    }
-    if (await abandoned(path3))
-      continue;
-    if (alive === void 0)
-      return { claims, blocked: true };
-    claims.push(claim);
-  }
-  return { claims, blocked: false };
-}
-async function modifiedAt(path3) {
-  try {
-    return (await lstat2(path3)).mtimeMs;
-  } catch (error2) {
-    if (errorCode(error2) === FILE_MISSING_CODE)
-      return void 0;
-    throw error2;
-  }
-}
-function claimPath(claimDirectory, id) {
-  return join10(claimDirectory, `${id}${FILE_LOCK_CLAIM_EXTENSION}`);
-}
-function hasClaimState(claims, id, choosing, ticket) {
-  const claim = claims.find((peer) => peer.id === id);
-  return claim?.choosing === choosing && claim.ticket === ticket;
-}
-function makeHandle(claimDirectory, claim) {
-  let releasePromise;
-  return {
-    async assertHeld() {
-      if (await modifiedAt(claimPath(claimDirectory, claim.id)) === void 0)
-        throw new Error(FILE_LOCK_LOST_MESSAGE);
-    },
-    release() {
-      stopHeartbeat(claim.id);
-      releasePromise ??= removeFile(claimPath(claimDirectory, claim.id)).then((removed) => {
-        if (!removed)
-          throw new Error(FILE_LOCK_RELEASE_MESSAGE);
-      });
-      return releasePromise;
-    }
-  };
-}
-async function beginClaim(filePath) {
-  const claimDirectory = `${resolve4(filePath)}${FILE_LOCK_DIRECTORY_SUFFIX}`;
-  for (; ; ) {
-    try {
-      await assertSafeClaimDirectory(claimDirectory);
-      await mkdir4(claimDirectory, { recursive: true, mode: FILE_LOCK_DIRECTORY_MODE });
-      await assertSafeClaimDirectory(claimDirectory);
-      await chmod(claimDirectory, FILE_LOCK_DIRECTORY_MODE);
-      return { claimDirectory, claim: await createClaim(claimDirectory) };
-    } catch (error2) {
-      if (errorCode(error2) !== FILE_MISSING_CODE)
-        throw error2;
-    }
-  }
-}
-async function assertSafeClaimDirectory(claimDirectory) {
-  let stat3;
-  try {
-    stat3 = await lstat2(claimDirectory);
-  } catch (error2) {
-    if (errorCode(error2) === FILE_MISSING_CODE)
-      return;
-    throw error2;
-  }
-  if (stat3.isSymbolicLink() || !stat3.isDirectory())
-    throw new Error(FILE_LOCK_UNSAFE_DIRECTORY_MESSAGE);
-}
-function isStillBusy(attempt, scan) {
-  return !attempt.waitForPeers && scan.blocked && scan.transient === true && performance4.now() < attempt.busyDeadline;
-}
-async function waitOrReleaseClaim(attempt) {
-  if (!attempt.waitForPeers) {
-    await makeHandle(attempt.claimDirectory, attempt.claim).release();
-    return false;
-  }
-  await waitForNextScan(attempt.deadline, attempt.claimDirectory);
-  return true;
-}
-async function observePeers(attempt, expectedChoosing, expectedTicket) {
-  for (; ; ) {
-    const scan = await scanClaims(attempt.claimDirectory, attempt.ownPath);
-    if (isStillBusy(attempt, scan)) {
-      await delay(FILE_LOCK_POLL_INTERVAL_MS);
-      continue;
-    }
-    if (scan.blocked || !hasClaimState(scan.claims, attempt.claim.id, expectedChoosing, expectedTicket)) {
-      if (!await waitOrReleaseClaim(attempt))
-        return void 0;
-      continue;
-    }
-    return scan.claims;
-  }
-}
-async function takeTicket(attempt) {
-  const { claim, claimDirectory, ownPath, waitForPeers } = attempt;
-  const claims = await observePeers(attempt, true, FILE_LOCK_UNSELECTED_TICKET);
-  if (claims === void 0)
-    return void 0;
-  if (!waitForPeers && claims.some((peer) => peer.id !== claim.id && !peer.choosing)) {
-    await makeHandle(claimDirectory, claim).release();
-    return void 0;
-  }
-  let maxTicket = FILE_LOCK_UNSELECTED_TICKET;
-  for (const peer of claims)
-    maxTicket = Math.max(maxTicket, peer.ticket);
-  if (maxTicket >= Number.MAX_SAFE_INTEGER)
-    throw new Error(FILE_LOCK_TICKET_LIMIT_MESSAGE);
-  const ticketedClaim = { ...claim, choosing: false, ticket: maxTicket + 1 };
-  await publishClaim(ownPath, ticketedClaim, false, waitForPeers ? attempt.deadline : attempt.busyDeadline);
-  return ticketedClaim;
-}
-async function waitForTurn(attempt, ticketedClaim) {
-  const { claim, claimDirectory, waitForPeers } = attempt;
-  const choosingDeadline = performance4.now() + FILE_LOCK_TRY_CHOOSING_WAIT_MS;
-  for (; ; ) {
-    const claims = await observePeers(attempt, false, ticketedClaim.ticket);
-    if (claims === void 0)
-      return void 0;
-    const peers = claims.filter((peer) => peer.id !== claim.id);
-    if (!waitForPeers && !peers.some((peer) => !peer.choosing && precedes(peer, ticketedClaim)) && peers.some((peer) => peer.choosing) && performance4.now() < choosingDeadline) {
-      await delay(FILE_LOCK_POLL_INTERVAL_MS);
-      continue;
-    }
-    if (peers.some((peer) => precedes(peer, ticketedClaim))) {
-      if (!await waitOrReleaseClaim(attempt))
-        return void 0;
-      continue;
-    }
-    if (waitForPeers && performance4.now() > attempt.deadline)
-      throw new FileLockTimeoutError(claimDirectory);
-    return { claimDirectory, claim: ticketedClaim };
-  }
-}
-async function acquireClaim(filePath, waitForPeers, deadline) {
-  const { claimDirectory, claim } = await beginClaim(filePath);
-  const attempt = {
-    filePath,
-    claimDirectory,
-    claim,
-    ownPath: claimPath(claimDirectory, claim.id),
-    waitForPeers,
-    deadline,
-    busyDeadline: performance4.now() + FILE_LOCK_TRY_CHOOSING_WAIT_MS
-  };
-  try {
-    const ticketedClaim = await takeTicket(attempt);
-    if (!ticketedClaim)
-      return void 0;
-    return await waitForTurn(attempt, ticketedClaim);
-  } catch (error2) {
-    await makeHandle(claimDirectory, claim).release();
-    throw error2;
-  }
-}
-async function tryAcquireFileLock(filePath) {
-  const acquired = await acquireClaim(filePath, false, 0);
-  if (!acquired)
-    return void 0;
-  return makeHandle(acquired.claimDirectory, acquired.claim);
-}
-async function acquireCompatibleDirectoryFileLock(filePath, options) {
-  const resolvedPath = resolve4(filePath);
-  const deadline = performance4.now() + timeoutMs(options);
-  const gate = await acquireLegacyDirectoryGate(resolvedPath, deadline, tryAcquireFileLock);
-  let acquired;
-  try {
-    acquired = await acquireClaim(resolvedPath, true, deadline);
-    if (!acquired)
-      throw new Error(FILE_LOCK_ACQUIRE_MESSAGE);
-  } catch (error2) {
-    try {
-      await releaseLegacyDirectoryGate(gate);
-    } catch (cleanupError) {
-      throw new AggregateError([error2, cleanupError], FILE_LOCK_COMPATIBLE_ACQUIRE_CLEANUP_MESSAGE, {
-        cause: cleanupError
-      });
-    }
-    throw error2;
-  }
-  const sharedHandle = makeHandle(acquired.claimDirectory, acquired.claim);
-  let releasePromise;
-  return {
-    assertHeld: () => sharedHandle.assertHeld(),
-    release() {
-      releasePromise ??= (async () => {
-        const errors = [];
-        try {
-          await sharedHandle.release();
-        } catch (error2) {
-          errors.push(error2);
-        }
-        try {
-          await releaseLegacyDirectoryGate(gate);
-        } catch (error2) {
-          errors.push(error2);
-        }
-        if (errors.length === 1)
-          throw errors[0];
-        if (errors.length > 1)
-          throw new AggregateError(errors, FILE_LOCK_COMPATIBLE_RELEASE_MESSAGE);
-      })();
-      return releasePromise;
-    }
-  };
-}
-function precedes(left, right) {
-  return left.ticket < right.ticket || left.ticket === right.ticket && left.id < right.id;
-}
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/plugin/policy-file.js
-function readPolicyFile(path3, options) {
-  let raw;
-  try {
-    if (options.requireRegularFile && !lstatSync2(path3).isFile())
-      throw new Error(POLICY_NOT_REGULAR_MESSAGE);
-    raw = readFileSync9(path3, POLICY_FILE_ENCODING);
-  } catch (error2) {
-    if (errorCode(error2) === FILE_MISSING_CODE) {
-      try {
-        lstatSync2(path3);
-      } catch (statError) {
-        if (errorCode(statError) === FILE_MISSING_CODE)
-          return options.empty();
-        throw statError;
-      }
-    }
-    throw error2;
-  }
-  const policy = options.parse(JSON.parse(raw));
-  if (policy === void 0)
-    throw new TypeError(POLICY_PARSE_RESULT_MESSAGE);
-  return policy;
-}
-async function updatePolicyFile(path3, options, update) {
-  const lockPath2 = `${path3}${FILE_LOCK_DIRECTORY_SUFFIX}`;
-  const lock = await acquirePolicyLock(path3);
-  const warnings = [];
-  try {
-    const policy = readPolicyForUpdate(path3, options);
-    const updated = update(policy);
-    if (isThenable(updated))
-      throw new TypeError(POLICY_ASYNC_UPDATE_MESSAGE);
-    await replacePolicyFile(path3, updated === void 0 ? policy : updated, warnings);
-    if (process.platform !== WINDOWS_PLATFORM)
-      await syncPolicyDirectory(path3, warnings);
-  } finally {
-    await bestEffort(warnings, async () => {
-      await lock.release();
-      await removeEmptyLockFolders(path3, dirname10(path3));
-    }, `${POLICY_LOCK_CLEANUP_FAILED_PREFIX} ${lockPath2}. ${POLICY_LOCK_RELEASE_WARNING}`);
-  }
-  return warnings.length ? { warning: warnings.join(POLICY_WARNING_SEPARATOR) } : {};
-}
-async function bestEffort(warnings, action, message) {
-  try {
-    await action();
-  } catch (error2) {
-    warnings.push(`${message}: ${describe(error2)}`);
-  }
-}
-function acquirePolicyLock(path3) {
-  return acquireCompatibleDirectoryFileLock(path3, {
-    timeoutMs: POLICY_LOCK_TIMEOUT_MS
-  }).catch((error2) => {
-    const timeout = findLockTimeout(error2);
-    if (timeout !== void 0) {
-      throw new Error(`${POLICY_LOCK_TIMEOUT_ERROR} ${timeout.blockedPath}. ${POLICY_LOCK_TIMEOUT_MESSAGE}`, { cause: error2 });
-    }
-    throw error2;
-  });
-}
-function readPolicyForUpdate(path3, options) {
-  try {
-    return readPolicyFile(path3, options);
-  } catch (error2) {
-    throw new Error(`${POLICY_CANNOT_READ_PREFIX} ${path3}. ${POLICY_UNREADABLE_MESSAGE}`, {
-      cause: error2
-    });
-  }
-}
-async function writePolicyTemp(tempPath, policy, warnings) {
-  const temp = await open(tempPath, POLICY_TEMP_CREATE_FLAG, POLICY_FILE_MODE);
-  try {
-    await temp.writeFile(`${JSON.stringify(policy)}
-`, POLICY_FILE_ENCODING);
-    await temp.sync();
-  } catch (error2) {
-    await bestEffort(warnings, () => temp.close(), POLICY_TEMP_CLOSE_WARNING);
-    throw error2;
-  }
-  await temp.close();
-}
-async function replacePolicyFile(path3, policy, warnings) {
-  const tempPath = `${path3}.${process.pid}.${randomUUID6()}.tmp`;
-  try {
-    await writePolicyTemp(tempPath, policy, warnings);
-    await rename4(tempPath, path3);
-  } catch (error2) {
-    await bestEffort(warnings, () => unlink4(tempPath), POLICY_TEMP_CLEANUP_WARNING);
-    throw error2;
-  }
-}
-async function syncPolicyDirectory(path3, warnings) {
-  await bestEffort(warnings, async () => {
-    const directory = await open(dirname10(path3), POLICY_DIRECTORY_OPEN_FLAG);
-    try {
-      await directory.sync();
-    } finally {
-      await bestEffort(warnings, () => directory.close(), POLICY_DIRECTORY_CLOSE_WARNING);
-    }
-  }, POLICY_DURABILITY_WARNING);
-}
-function isThenable(value) {
-  return typeof Reflect.get(Object(value), "then") === "function";
-}
-function findLockTimeout(error2) {
-  if (error2 instanceof FileLockTimeoutError)
-    return error2;
-  if (!(error2 instanceof AggregateError))
-    return void 0;
-  return error2.errors.map(findLockTimeout).find((found) => found !== void 0);
-}
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/capture/capture-store.js
-import { lstat as lstat6 } from "node:fs/promises";
-import { basename as basename2, dirname as dirname13, join as join15, resolve as resolve7 } from "node:path";
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/capture/paths.js
-import { createHash } from "node:crypto";
-import { resolve as resolve5, join as join11 } from "node:path";
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/capture/utils/atomic-file.js
-import { constants as fsConstants } from "node:fs";
-import { chmod as chmod2, link as link2, lstat as lstat3, mkdir as mkdir5, open as open2, rename as rename5, unlink as unlink5 } from "node:fs/promises";
-import { dirname as dirname11, isAbsolute as isAbsolute3, join as join12, relative, sep } from "node:path";
-import { randomUUID as randomUUID7 } from "node:crypto";
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/utils/files/private-directory.js
-import { lstat as lstat4, readdir as readdir4 } from "node:fs/promises";
-import { isAbsolute as isAbsolute4, join as join13, relative as relative2, resolve as resolve6, sep as sep2 } from "node:path";
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/capture/utils/digest.js
-import { createHash as createHash2 } from "node:crypto";
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/capture/markers.js
-import { lstat as lstat5 } from "node:fs/promises";
-import { basename, dirname as dirname12, join as join14 } from "node:path";
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/tracing/background-worker/worker.js
-import { randomUUID as randomUUID8 } from "node:crypto";
-import { resolve as resolve9 } from "node:path";
-import { setTimeout as delay2 } from "node:timers/promises";
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/tracing/background-worker/paths.js
-import { join as join16, resolve as resolve8 } from "node:path";
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/tracing/background-worker/state.js
-import { join as join17 } from "node:path";
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/tracing/lifecycle/bridge.js
-import { join as join20, resolve as resolve11 } from "node:path";
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/stale-files.js
-import { lstat as lstat7, readdir as readdir5, rmdir as rmdir3 } from "node:fs/promises";
-import { basename as basename3, dirname as dirname14, join as join18 } from "node:path";
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/tracing/delivery/coordinator.js
-import { join as join19, resolve as resolve10 } from "node:path";
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/tracing/delivery/constants.js
-var DELIVERY_RETRY_MAX_MS = 30 * 60 * 1e3;
-var DELIVERY_DEFAULT_MAX_AGE_MS = 6 * 60 * 60 * 1e3;
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/capture/retry-state.js
-var PROCESS_STARTED_AT_MS = Date.now();
-
-// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/tracing/delivery/deliver.js
-import { setTimeout as delay3 } from "node:timers/promises";
 
 // node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/metadata/constants.js
 var CODING_AGENT_SCHEMA_VERSION = "coding-agent-v1";
@@ -15925,6 +14103,9 @@ var CODING_AGENT_PROVIDER_FIELD_DEFAULTS = {
   metadataSource: "provider",
   providerIntegrations: CODING_AGENT_CORE_INTEGRATIONS
 };
+var TRUSTED_METADATA = /* @__PURE__ */ Symbol("coding-agent trusted metadata");
+var METADATA_MODE_NAME = "metadata";
+var METADATA_MODE_STATUS_VALUES = ["running", "completed", "error"];
 var CODING_AGENT_RUNTIME_LIBRARY = "langsmith";
 var CODING_AGENT_RUNTIME_SDK = "langsmith-js";
 var CODING_AGENT_RELEASE_ENVIRONMENT_VARIABLES = [
@@ -16103,6 +14284,1982 @@ var CODING_AGENT_V1_CONTRACT = {
   integrationPolicies: CODING_AGENT_INTEGRATION_POLICIES
 };
 
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/utils/constants.js
+var FILE_MISSING_CODE = "ENOENT";
+var PROCESS_MISSING_CODE = "ESRCH";
+var PROCESS_CHECK_SIGNAL = 0;
+var WINDOWS_PLATFORM = "win32";
+var FILE_EXISTS_CODE = "EEXIST";
+var PERMISSION_DENIED_CODE = "EPERM";
+var FILE_ACCESS_DENIED_CODE = "EACCES";
+var FILE_BUSY_CODE = "EBUSY";
+var DIRECTORY_NOT_EMPTY_CODE = "ENOTEMPTY";
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/capture/constants.js
+var CAPTURE_TURN_CEILING_MS = 7 * 24 * 60 * 60 * 1e3;
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/utils/validation/objects.js
+function isPlainRecord(value) {
+  return value !== null && typeof value === "object" && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
+}
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/metadata/validation.js
+function metadataFieldTypeIssue(field2, value) {
+  const matchesType = field2.type === "string" ? typeof value === "string" && value.length > 0 : field2.type === "integer" ? typeof value === "number" && Number.isSafeInteger(value) && value >= 1 : isPlainRecord(value);
+  if (!matchesType)
+    return "type";
+  return void 0;
+}
+function metadataFieldValueIssue(field2, value) {
+  const typeIssue = metadataFieldTypeIssue(field2, value);
+  if (typeIssue)
+    return typeIssue;
+  if (field2.allowedValues && !field2.allowedValues.includes(value))
+    return "value";
+  return void 0;
+}
+function validateProviderMetadata(value, integration, runType) {
+  if (!isPlainRecord(value))
+    return [{ key: "", reason: "type" }];
+  const issues = [];
+  for (const [key, entry] of Object.entries(value)) {
+    const field2 = CODING_AGENT_V1_CONTRACT.keys.find((candidate) => candidate.key === key);
+    if (field2?.metadataSource !== "provider") {
+      issues.push({ key, reason: "scope" });
+      continue;
+    }
+    if (!field2.providerIntegrations?.includes(integration)) {
+      issues.push({ key, reason: "integration" });
+      continue;
+    }
+    if (!field2.appliesTo.includes(runType)) {
+      issues.push({ key, reason: "scope" });
+      continue;
+    }
+    const reason = metadataFieldValueIssue(field2, entry);
+    if (reason)
+      issues.push({ key, reason });
+  }
+  return issues;
+}
+function normalizeProviderMetadata(value, integration, runType) {
+  if (!isPlainRecord(value))
+    return {};
+  const issues = new Map(validateProviderMetadata(value, integration, runType).map((issue) => [issue.key, issue]));
+  return Object.fromEntries(Object.entries(value).filter(([key, entry]) => entry !== void 0 && !issues.has(key)));
+}
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/metadata/builder.js
+function buildCodingAgentMetadata(options) {
+  const policy = CODING_AGENT_INTEGRATION_POLICIES[options.integration];
+  const identity = {
+    ls_agent_purpose: CODING_AGENT_PURPOSE,
+    ls_integration: options.integration,
+    ls_agent_runtime: CODING_AGENT_V1_CONTRACT.runtimeNames[options.integration],
+    ls_trace_schema_version: CODING_AGENT_SCHEMA_VERSION,
+    ls_agent_type: options.agentType,
+    thread_id: options.threadId
+  };
+  if (options.integrationVersion)
+    identity.ls_integration_version = options.integrationVersion;
+  if (options.runtimeVersion)
+    identity.ls_agent_runtime_version = options.runtimeVersion;
+  if (options.turnId)
+    identity.turn_id = options.turnId;
+  if (typeof options.turnNumber === "number")
+    identity.turn_number = options.turnNumber;
+  if (options.approvalPolicy)
+    identity.approval_policy = options.approvalPolicy;
+  if (options.clearSubagent) {
+    identity.ls_subagent_id = void 0;
+    identity.ls_subagent_type = void 0;
+  } else {
+    if (options.subagentId)
+      identity.ls_subagent_id = options.subagentId;
+    if (options.subagentType)
+      identity.ls_subagent_type = options.subagentType;
+  }
+  if (options.toolName) {
+    if (policy.legacyAliases)
+      identity.tool_name = options.toolName;
+    if (options.runName && options.toolName !== options.runName) {
+      identity.ls_tool_name = options.toolName;
+    }
+  }
+  if (options.skillName)
+    identity.ls_skill_name = options.skillName;
+  if (policy.legacyAliases && options.subagentId)
+    identity.agent_id = options.subagentId;
+  if (policy.legacyAliases && options.subagentType)
+    identity.agent_type = options.subagentType;
+  const explicit = {};
+  if (options.modelName !== void 0)
+    explicit.ls_model_name = options.modelName;
+  if (options.usageMetadata !== void 0)
+    explicit.usage_metadata = options.usageMetadata;
+  const provider2 = normalizeProviderMetadata(options.providerMetadata, options.integration, options.runType);
+  const trusted = { ...identity, ...explicit, ...provider2 };
+  if (policy.metadataModePreservesToolName && options.toolName) {
+    trusted.ls_tool_name = options.toolName;
+  }
+  const pieces = [identity, explicit, provider2, options.runSpecific, options.base];
+  const full = policy.fullModePrecedence === "custom-wins" ? pieces : pieces.toReversed();
+  const result = {};
+  for (const piece of full) {
+    if (piece)
+      Object.assign(result, piece);
+  }
+  Object.defineProperty(result, TRUSTED_METADATA, { value: trusted });
+  return result;
+}
+function trustedCodingAgentMetadata(metadata) {
+  return metadata?.[TRUSTED_METADATA];
+}
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/metadata/privacy.js
+function projectCodingAgentMetadata(metadata, integration, status) {
+  const safe = {};
+  for (const [key, value] of Object.entries(metadata ?? {})) {
+    const field2 = CODING_AGENT_V1_CONTRACT.keys.find((entry) => entry.key === key);
+    if (!field2?.metadataModeIntegrations.includes(integration) || value === void 0 || metadataFieldTypeIssue(field2, value) !== void 0) {
+      continue;
+    }
+    safe[key] = value;
+  }
+  safe.status = METADATA_MODE_STATUS_VALUES.includes(status) ? status : "running";
+  safe.ls_tracing_mode = METADATA_MODE_NAME;
+  return safe;
+}
+function metadataForMode(metadata, integration, mode = "full", status) {
+  if (mode === "full")
+    return metadata;
+  const trusted = trustedCodingAgentMetadata(metadata);
+  const source = trusted ?? (CODING_AGENT_INTEGRATION_POLICIES[integration].metadataModeUsesDirectMetadata ? metadata : void 0);
+  return projectCodingAgentMetadata(source, integration, status);
+}
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/privacy/constants.js
+var MUTED_TRACE_CONTENT = "[LangSmith system notice: content omitted because tracing is muted.]";
+var METADATA_MODE_RUN_CONFIG_FIELDS = [
+  "client",
+  "id",
+  "name",
+  "run_type",
+  "project_name",
+  "start_time",
+  "end_time",
+  "parent_run",
+  "parent_run_id",
+  "trace_id",
+  "dotted_order",
+  "distributedParentId"
+];
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/privacy/run-tree.js
+function mutedContent(role) {
+  return { messages: [{ role, content: MUTED_TRACE_CONTENT }] };
+}
+function statusOfRun(run) {
+  const metadataStatus = run.extra?.metadata?.status;
+  if (run.error != null || metadataStatus === "error")
+    return "error";
+  if (run.end_time != null || metadataStatus === "completed")
+    return "completed";
+  return "running";
+}
+function projectReplica(replica) {
+  if (!replica || typeof replica !== "object")
+    return replica;
+  if (Array.isArray(replica))
+    return { projectName: replica[0] };
+  const { updates: _updates, ...safe } = replica;
+  return safe;
+}
+function extraForMode(metadata, integration, status) {
+  return {
+    metadata,
+    toJSON() {
+      const currentStatus = this.metadata?.status;
+      const safeStatus = currentStatus === "running" || currentStatus === "completed" || currentStatus === "error" ? currentStatus : status;
+      return {
+        metadata: projectCodingAgentMetadata(this.metadata, integration, safeStatus)
+      };
+    }
+  };
+}
+function configForMetadataMode(config, integration, privacyContext) {
+  const source = config;
+  const status = privacyContext?.status ?? (source.error != null ? "error" : source.end_time != null ? "completed" : "running");
+  const originalExtra = source.extra;
+  const safe = {};
+  for (const key of METADATA_MODE_RUN_CONFIG_FIELDS) {
+    if (key in source && source[key] !== void 0)
+      safe[key] = source[key];
+  }
+  if (Array.isArray(source.replicas))
+    safe.replicas = source.replicas.map(projectReplica);
+  if (Array.isArray(source.tags) && source.tags.length === 0)
+    safe.tags = [];
+  safe.inputs = mutedContent("user");
+  safe.outputs = mutedContent("assistant");
+  safe.extra = extraForMode(metadataForMode(originalExtra?.metadata, integration, "metadata", status) ?? {}, integration, status);
+  return safe;
+}
+function sanitizeRunTree(run, integration) {
+  const status = statusOfRun(run);
+  const metadata = projectCodingAgentMetadata(run.extra?.metadata, integration, status);
+  run.inputs = mutedContent("user");
+  run.outputs = mutedContent("assistant");
+  delete run.error;
+  run.serialized = {};
+  if (!Array.isArray(run.tags) || run.tags.length > 0)
+    delete run.tags;
+  delete run.reference_example_id;
+  delete run.attachments;
+  delete run.events;
+  if (run.replicas)
+    run.replicas = run.replicas.map(projectReplica);
+  for (const child of run.child_runs ?? [])
+    sanitizeRunTree(child, integration);
+  run.extra = extraForMode(metadata, integration, status);
+}
+function protectRunTree(run, integration) {
+  sanitizeRunTree(run, integration);
+  const createChild = run.createChild.bind(run);
+  run.createChild = (config) => protectRunTree(createChild(configForMetadataMode(config, integration)), integration);
+  const postRun = run.postRun.bind(run);
+  run.postRun = async (excludeChildRuns = true) => {
+    sanitizeRunTree(run, integration);
+    if (!excludeChildRuns) {
+      const childRuns = [...run.child_runs];
+      await postRun(true);
+      for (const childRun of childRuns)
+        await childRun.postRun(false);
+      return;
+    }
+    return postRun(excludeChildRuns);
+  };
+  const patchRun = run.patchRun.bind(run);
+  run.patchRun = (options) => {
+    sanitizeRunTree(run, integration);
+    return patchRun({ excludeInputs: false, ...options });
+  };
+  const end = run.end.bind(run);
+  run.end = (outputs, error2, endTime, metadata) => {
+    const status = error2 != null ? "error" : endTime != null ? "completed" : statusOfRun(run);
+    const safeMetadata = metadataForMode(metadata, integration, "metadata", status) ?? { status };
+    return end(mutedContent("assistant"), void 0, endTime, safeMetadata);
+  };
+  const toJSON = run.toJSON.bind(run);
+  run.toJSON = () => {
+    sanitizeRunTree(run, integration);
+    return toJSON();
+  };
+  return run;
+}
+function preserveFullModePatchInputs(run) {
+  const createChild = run.createChild.bind(run);
+  run.createChild = (config) => preserveFullModePatchInputs(createChild(config));
+  const patchRun = run.patchRun.bind(run);
+  run.patchRun = (options) => patchRun({ excludeInputs: false, ...options });
+  return run;
+}
+function createCodingAgentRunTree(config, integration, mode = "full", privacyContext) {
+  const run = new RunTree(mode === "metadata" ? configForMetadataMode(config, integration, privacyContext) : config);
+  return mode === "metadata" ? protectRunTree(run, integration) : preserveFullModePatchInputs(run);
+}
+
+// dist/src/privacy.js
+function createRunTree(config, mode = "full") {
+  return createCodingAgentRunTree(config, LS_INTEGRATION, mode);
+}
+function projectReplica2(replica) {
+  if (!replica || typeof replica !== "object")
+    return replica;
+  if (Array.isArray(replica))
+    return { projectName: replica[0] };
+  const { updates: _updates, ...safe } = replica;
+  return safe;
+}
+function runConfigForMode(config, mode = "full") {
+  if (mode === "full")
+    return config;
+  const status = config.error ? "error" : config.end_time != null ? "completed" : "running";
+  const extra = config.extra;
+  const safe = {};
+  for (const key of METADATA_MODE_RUN_FIELDS) {
+    if (key in config && config[key] !== void 0)
+      safe[key] = config[key];
+  }
+  if (Array.isArray(config.replicas))
+    safe.replicas = config.replicas.map(projectReplica2);
+  safe.inputs = { messages: [{ role: "user", content: MUTED_TRACE_CONTENT }] };
+  safe.outputs = { messages: [{ role: "assistant", content: MUTED_TRACE_CONTENT }] };
+  safe.extra = {
+    metadata: metadataForMode(extra?.metadata, LS_INTEGRATION, mode, status),
+    toJSON() {
+      return { metadata: projectCodingAgentMetadata(this.metadata, LS_INTEGRATION, status) };
+    }
+  };
+  return safe;
+}
+
+// dist/src/turn-record.js
+import { appendFileSync as appendFileSync2, existsSync as existsSync3, mkdirSync as mkdirSync5, readFileSync as readFileSync6, readdirSync as readdirSync2, statSync as statSync6, unlinkSync as unlinkSync3 } from "node:fs";
+import { dirname as dirname6, join as join5 } from "node:path";
+var turnRecordRoot = (stateFilePath) => storeRoot(stateFilePath, TURN_RECORD_DIR_NAME);
+var turnRecordDir = (stateFilePath, sessionId) => storeDir(stateFilePath, TURN_RECORD_DIR_NAME, sessionId);
+function turnRecordPath(stateFilePath, sessionId, turnKey) {
+  return join5(turnRecordDir(stateFilePath, sessionId), `${safeName(turnKey)}${TURN_RECORD_SUFFIX}`);
+}
+function entriesIn(dir, suffix) {
+  try {
+    return readdirSync2(dir).filter((name) => name.endsWith(suffix)).sort().map((name) => join5(dir, name));
+  } catch {
+    return [];
+  }
+}
+var listRecordedSessions = (stateFilePath) => listStoredSessions(stateFilePath, TURN_RECORD_DIR_NAME);
+var listTurnRecords = (dir) => entriesIn(dir, TURN_RECORD_SUFFIX);
+function recordsIdleMs(dir, now = Date.now()) {
+  let newest = 0;
+  for (const path3 of listTurnRecords(dir)) {
+    try {
+      newest = Math.max(newest, statSync6(path3).mtimeMs);
+    } catch {
+    }
+  }
+  return newest === 0 ? Number.POSITIVE_INFINITY : now - newest;
+}
+function append(path3, line) {
+  try {
+    mkdirSync5(dirname6(path3), { recursive: true, mode: PRIVATE_DIR_MODE });
+    appendFileSync2(path3, `${JSON.stringify(line)}
+`, { mode: PRIVATE_FILE_MODE });
+    return true;
+  } catch (err) {
+    warn(`Could not add to the turn record: ${err}`);
+    return false;
+  }
+}
+function recordedRun(run, tracing) {
+  const safe = runConfigForMode(run, tracing);
+  const extra = safe.extra;
+  if (typeof safe.id !== "string" || typeof safe.dotted_order !== "string")
+    return void 0;
+  return {
+    run_id: safe.id,
+    parent_run_id: typeof safe.parent_run_id === "string" ? safe.parent_run_id : void 0,
+    trace_id: typeof safe.trace_id === "string" ? safe.trace_id : safe.id,
+    dotted_order: safe.dotted_order,
+    name: typeof safe.name === "string" ? safe.name : "",
+    run_type: typeof safe.run_type === "string" ? safe.run_type : RECORDED_RUN_FALLBACK_TYPE,
+    project_name: typeof safe.project_name === "string" ? safe.project_name : void 0,
+    start_time: typeof safe.start_time === "string" ? safe.start_time : void 0,
+    end_time: typeof safe.end_time === "string" ? safe.end_time : void 0,
+    tracing,
+    metadata: JSON.parse(JSON.stringify(extra?.metadata ?? {}))
+  };
+}
+function recordRun(options) {
+  const run = recordedRun(options.run, options.tracing);
+  if (!run)
+    return false;
+  if (options.closesAt) {
+    run.open = true;
+    run.end_time = options.closesAt;
+  }
+  return append(options.path, {
+    k: TURN_RECORD_LINE.run,
+    root: options.root,
+    origin: options.origin,
+    run
+  });
+}
+function recordTurnClosed(path3, turnId) {
+  append(path3, { k: TURN_RECORD_LINE.closed, turn_id: turnId });
+}
+function closeTurnRecord(options) {
+  const path3 = turnRecordPath(options.stateFilePath, options.sessionId, options.turnRunId);
+  if (!existsSync3(path3))
+    return;
+  recordTurnClosed(path3, options.turnId);
+}
+function recordDelivered(path3, runId) {
+  return append(path3, { k: TURN_RECORD_LINE.delivered, id: runId });
+}
+function recordReconciled(path3, runId) {
+  append(path3, { k: TURN_RECORD_LINE.reconciled, id: runId });
+}
+function readTurnRecord(path3) {
+  let contents;
+  try {
+    if (statSync6(path3).size > TURN_RECORD_MAX_BYTES) {
+      warn(`Dropping a turn record too large to be real: ${path3}`);
+      discardTurnRecord(path3);
+      return void 0;
+    }
+    contents = readFileSync6(path3, "utf-8");
+  } catch {
+    return void 0;
+  }
+  const record = {
+    path: path3,
+    origin: "",
+    children: [],
+    closed: false,
+    delivered: /* @__PURE__ */ new Set(),
+    fixed: /* @__PURE__ */ new Set()
+  };
+  const byId = /* @__PURE__ */ new Map();
+  for (const line of contents.split("\n")) {
+    if (!line)
+      continue;
+    let parsed;
+    try {
+      parsed = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    if (parsed.k === TURN_RECORD_LINE.run && typeof parsed.run?.run_id === "string") {
+      if (parsed.root)
+        record.root = parsed.run;
+      else
+        byId.set(parsed.run.run_id, parsed.run);
+      if (parsed.origin)
+        record.origin = parsed.origin;
+    } else if (parsed.k === TURN_RECORD_LINE.closed) {
+      record.closed = true;
+      record.turnId = parsed.turn_id;
+    } else if (parsed.k === TURN_RECORD_LINE.delivered && typeof parsed.id === "string") {
+      record.delivered.add(parsed.id);
+    } else if (parsed.k === TURN_RECORD_LINE.reconciled && typeof parsed.id === "string") {
+      record.fixed.add(parsed.id);
+    }
+  }
+  record.children = [...byId.values()];
+  return record;
+}
+function discardTurnRecord(path3) {
+  try {
+    unlinkSync3(path3);
+    debug(`Removed the turn record ${path3}`);
+  } catch {
+  }
+}
+
+// dist/src/queue.js
+function queueOrigin(destination) {
+  const identity = JSON.stringify([
+    destination.apiBaseUrl,
+    destination.replicas ?? null,
+    destination.redact ?? false,
+    destination.redactExtraRules ?? null
+  ]);
+  return createHmac("sha256", destination.apiKey).update(identity).digest("hex").slice(0, QUEUE_ORIGIN_LENGTH);
+}
+var queueDir = (stateFilePath) => storeRoot(stateFilePath, QUEUE_DIR_NAME);
+var queueSessionDir = (stateFilePath, sessionId) => storeDir(stateFilePath, QUEUE_DIR_NAME, sessionId);
+var listQueues = (stateFilePath) => listStoredSessions(stateFilePath, QUEUE_DIR_NAME);
+function names(dir) {
+  try {
+    return readdirSync3(dir);
+  } catch {
+    return [];
+  }
+}
+function entryIds(dir) {
+  try {
+    return readdirSync3(dir).filter((name) => name.endsWith(QUEUE_FILE_SUFFIX)).sort().map((name) => name.slice(0, -QUEUE_FILE_SUFFIX.length));
+  } catch {
+    return [];
+  }
+}
+function entryPath(dir, queueId) {
+  return join6(dir, `${queueId}${QUEUE_FILE_SUFFIX}`);
+}
+function readEntry(dir, queueId) {
+  try {
+    const parsed = JSON.parse(readFileSync7(entryPath(dir, queueId), "utf-8"));
+    return parsed && parsed.run ? { ...parsed, queue_id: queueId } : void 0;
+  } catch {
+    return void 0;
+  }
+}
+function nextQueued(dir) {
+  for (const queueId of entryIds(dir)) {
+    const entry = readEntry(dir, queueId);
+    if (entry)
+      return entry;
+    removeQueued(dir, queueId);
+  }
+  return void 0;
+}
+function publish(dir, queueId, entry) {
+  publishByRename(entryPath(dir, queueId), JSON.stringify(entry), QUEUE_TEMP_SUFFIX, PRIVATE_FILE_MODE);
+}
+function trim(dir) {
+  const ids = entryIds(dir);
+  for (const queueId of ids.slice(0, Math.max(0, ids.length - QUEUE_MAX_ENTRIES))) {
+    removeQueued(dir, queueId);
+  }
+}
+async function enqueueRun(stateFilePath, sessionId, run, tracing, origin, record, where) {
+  const dir = queueSessionDir(stateFilePath, sessionId);
+  const queueId = `${String(Date.now()).padStart(QUEUE_ID_TIME_WIDTH, "0")}-${randomUUID2()}`;
+  try {
+    mkdirSync6(dir, { recursive: true, mode: PRIVATE_DIR_MODE });
+    publish(dir, queueId, {
+      tracing,
+      attempts: 0,
+      origin,
+      record,
+      where,
+      run: runConfigForMode(run, tracing)
+    });
+    trim(dir);
+    debug(`Queued run for upload in ${entryPath(dir, queueId)}`);
+  } catch (err) {
+    warn(`Could not queue run for upload: ${err}`);
+  }
+}
+function abandonQueued(entry) {
+  if (entry.record && typeof entry.run.id === "string")
+    recordDelivered(entry.record, entry.run.id);
+}
+function removeQueued(dir, queueId) {
+  try {
+    unlinkSync4(entryPath(dir, queueId));
+  } catch {
+  }
+}
+function recordFailure(dir, queueId) {
+  const entry = readEntry(dir, queueId);
+  if (!entry)
+    return;
+  const attempts = (entry.attempts ?? 0) + 1;
+  if (attempts >= QUEUE_MAX_ATTEMPTS) {
+    warn(`Dropping a queued run after ${attempts} failed uploads: ${queueId}`);
+    abandonQueued(entry);
+    removeQueued(dir, queueId);
+    return;
+  }
+  try {
+    publish(dir, queueId, {
+      tracing: entry.tracing,
+      attempts,
+      origin: entry.origin,
+      record: entry.record,
+      where: entry.where,
+      run: entry.run
+    });
+  } catch (err) {
+    warn(`Could not record a failed upload: ${err}`);
+  }
+}
+function discardEmptyQueue(dir, now = Date.now()) {
+  if (entryIds(dir).length > 0)
+    return;
+  if (queueIdleMs(dir, now) < EMPTY_QUEUE_MIN_IDLE_MS)
+    return;
+  for (const name of names(dir).filter((entry) => entry.endsWith(QUEUE_TEMP_SUFFIX))) {
+    try {
+      unlinkSync4(join6(dir, name));
+    } catch {
+    }
+  }
+  discardDirIfEmpty(dir);
+}
+function queueIdleMs(dir, now = Date.now()) {
+  try {
+    return now - statSync7(dir).mtimeMs;
+  } catch {
+    return 0;
+  }
+}
+function queuedAtMs(queueId) {
+  const queuedAt = Number(queueId.slice(0, QUEUE_ID_TIME_WIDTH));
+  return Number.isFinite(queuedAt) && queuedAt > 0 ? queuedAt : void 0;
+}
+function oldestQueuedAtMs(dir) {
+  const [oldest] = entryIds(dir);
+  return oldest === void 0 ? void 0 : queuedAtMs(oldest);
+}
+function foreignQueueLooksAbandoned(dir, now = Date.now()) {
+  const queuedAt = oldestQueuedAtMs(dir);
+  if (queuedAt === void 0)
+    return false;
+  return now - queuedAt >= FOREIGN_QUEUE_MIN_RECORD_AGE_MS;
+}
+function runIsTooOldToUpload(entry, now = Date.now()) {
+  const started = new Date(entry.run.start_time).getTime();
+  if (Number.isFinite(started))
+    return now - started >= QUEUE_RUN_MAX_AGE_MS;
+  const queuedAt = queuedAtMs(entry.queue_id);
+  return queuedAt === void 0 || now - queuedAt >= QUEUE_RUN_MAX_AGE_MS;
+}
+
+// dist/src/reconcile.js
+function attributionOf(metadata) {
+  const carried = {};
+  for (const key of REPOSITORY_METADATA_KEYS) {
+    const value = metadata?.[key];
+    if (typeof value === "string" && value.length > 0)
+      carried[key] = value;
+  }
+  return carried;
+}
+var namesARepository = (carried) => carried[REPOSITORY_NAME_KEY] !== void 0;
+var everyChildLanded = (record) => record.children.every((child) => record.delivered.has(child.run_id));
+function turnAttribution(record) {
+  const root = attributionOf(record.root?.metadata);
+  const inToolCallOrder = [...record.children].sort((left, right) => left.dotted_order < right.dotted_order ? -1 : 1).map((child) => attributionOf(child.metadata));
+  const source = namesARepository(root) ? root : inToolCallOrder.find((carried) => namesARepository(carried));
+  const knowsWhoWorkedInSource = (carried) => carried[ATTRIBUTION_IDENTIFIER_KEY] !== void 0 && carried[REPOSITORY_NAME_KEY] === source?.[REPOSITORY_NAME_KEY];
+  const author = root[ATTRIBUTION_IDENTIFIER_KEY] ?? source?.[ATTRIBUTION_IDENTIFIER_KEY] ?? inToolCallOrder.find(knowsWhoWorkedInSource)?.[ATTRIBUTION_IDENTIFIER_KEY];
+  const filled = { ...source };
+  if (author !== void 0)
+    filled[ATTRIBUTION_IDENTIFIER_KEY] = author;
+  return Object.keys(filled).length > 0 ? filled : void 0;
+}
+function metadataAfterFill(run, filled) {
+  const carried = attributionOf(run.metadata);
+  const workedOutItsOwn = namesARepository(carried) && carried[REPOSITORY_NAME_KEY] !== filled[REPOSITORY_NAME_KEY];
+  if (workedOutItsOwn)
+    return void 0;
+  const missing = Object.entries(filled).filter(([key]) => carried[key] === void 0);
+  if (missing.length === 0)
+    return void 0;
+  return { ...run.metadata, ...Object.fromEntries(missing) };
+}
+function settledTurnMetadata(base, record) {
+  if (!record?.root)
+    return base;
+  const filled = turnAttribution({ ...record, root: { ...record.root, metadata: base ?? {} } });
+  if (!filled)
+    return base;
+  const missing = Object.entries(filled).filter(([key]) => base?.[key] === void 0);
+  return missing.length === 0 ? base : { ...base, ...Object.fromEntries(missing) };
+}
+function settledFromTurn(options) {
+  const { base, stateFilePath, sessionId, turnRunId } = options;
+  if (!turnRunId)
+    return base;
+  const record = readTurnRecord(turnRecordPath(stateFilePath, sessionId, turnRunId));
+  if (!record || !everyChildLanded(record))
+    return base;
+  return settledTurnMetadata(base, record) ?? base;
+}
+function attributionFiller(target) {
+  const record = target ? readTurnRecord(target.path) : void 0;
+  return (metadata) => settledTurnMetadata(metadata, record) ?? metadata;
+}
+function runConfig(run, metadata, client2, replicas2) {
+  return {
+    client: client2,
+    replicas: replicas2,
+    id: run.run_id,
+    name: run.name,
+    run_type: run.run_type,
+    project_name: run.project_name,
+    start_time: run.start_time,
+    end_time: run.end_time,
+    parent_run_id: run.parent_run_id,
+    trace_id: run.trace_id,
+    dotted_order: run.dotted_order,
+    extra: { metadata }
+  };
+}
+function alreadyUpdated(failure) {
+  const status = failure?.status;
+  return status === UPDATE_ALREADY_RECEIVED_STATUS;
+}
+function tooOldToUpload(record, now) {
+  const started = new Date(record.root?.start_time ?? "").getTime();
+  return Number.isFinite(started) && now - started >= QUEUE_RUN_MAX_AGE_MS;
+}
+async function reconcileTurn(options) {
+  const { record, client: client2, replicas: replicas2, watch } = options;
+  const now = options.now ?? Date.now();
+  if (!record.root)
+    return true;
+  if (tooOldToUpload(record, now)) {
+    warn(`Dropping a turn record LangSmith will no longer accept: ${record.path}`);
+    return true;
+  }
+  if (!record.closed)
+    return false;
+  if (!everyChildLanded(record)) {
+    debug(`Waiting for the rest of ${record.path} to land before settling it`);
+    return false;
+  }
+  const filled = turnAttribution(record) ?? {};
+  const stillOpen = record.children.filter((child) => child.open && record.delivered.has(child.run_id));
+  let settled = true;
+  for (const run of [record.root, ...stillOpen]) {
+    if (record.fixed.has(run.run_id))
+      continue;
+    const metadata = metadataAfterFill(run, filled) ?? run.metadata;
+    const runTree = createRunTree(runConfig(run, metadata, client2, replicas2), run.tracing);
+    await runTree.patchRun({ excludeInputs: true });
+    const failure = watch.failure();
+    if (failure && !alreadyUpdated(failure)) {
+      warn(`Could not settle the repository on run ${run.run_id}: ${failure}`);
+      settled = false;
+      continue;
+    }
+    recordReconciled(record.path, run.run_id);
+    debug(`Settled the repository and author on run ${run.run_id}`);
+  }
+  return settled;
+}
+async function reconcileAndClear(options) {
+  if (await reconcileTurn(options))
+    discardTurnRecord(options.record.path);
+}
+
+// dist/src/repo-attribution.js
+import { dirname as dirname7, isAbsolute as isAbsolute2, join as join7 } from "node:path";
+
+// dist/src/repo-attribution-paths.js
+import { existsSync as existsSync4 } from "node:fs";
+import { isAbsolute, resolve as resolve3 } from "node:path";
+function toolPathFromInput(toolInput, sessionCwd) {
+  if (!toolInput || typeof toolInput !== "object" || Array.isArray(toolInput)) {
+    return { namedAPath: false };
+  }
+  const input = toolInput;
+  let namedAPath = false;
+  for (const key of TOOL_PATH_INPUT_KEYS) {
+    const value = input[key];
+    if (typeof value !== "string" || value.length === 0)
+      continue;
+    namedAPath = true;
+    if (isAbsolute(value))
+      return { path: value, namedAPath };
+    if (!sessionCwd || !isAbsolute(sessionCwd))
+      continue;
+    const resolved = resolve3(sessionCwd, value);
+    if (existsSync4(resolved))
+      return { path: resolved, namedAPath };
+  }
+  return { namedAPath };
+}
+
+// dist/src/repo-attribution.js
+var rootByDirectory = /* @__PURE__ */ new Map();
+var attributionByRoot = /* @__PURE__ */ new Map();
+var identifierByRoot = /* @__PURE__ */ new Map();
+var githubLogin;
+function gitUserName(root) {
+  const stateFile = resolveStateFilePath();
+  githubLogin ??= createGitHubLoginFallback({
+    markerPath: join7(dirname7(stateFile), GH_LOGIN_MARKER_FILE)
+  });
+  return getGitUserName(root, { githubLogin });
+}
+function rootForPath(path3) {
+  const directory = nearestExistingDirectory(path3);
+  if (!directory)
+    return void 0;
+  if (rootByDirectory.has(directory))
+    return rootByDirectory.get(directory);
+  const walked = rootFromGitMarker(directory);
+  const onlyGitCanSay = walked === void 0;
+  const root = onlyGitCanSay ? getRepoRoot(directory) : walked;
+  rootByDirectory.set(directory, root);
+  return root;
+}
+function isSessionsOwnRepository(sessionCwd, root) {
+  return sessionCwd ? rootForPath(sessionCwd) === root : false;
+}
+function withoutPinnedKeys(attribution, pinned) {
+  if (pinned.size === 0)
+    return { ...attribution };
+  return Object.fromEntries(Object.entries(attribution).filter(([key]) => !pinned.has(key)));
+}
+function withoutRepositoryKeys(base, pinned) {
+  const stripped = { ...base };
+  for (const key of REPOSITORY_METADATA_KEYS) {
+    if (!pinned.has(key))
+      delete stripped[key];
+  }
+  return stripped;
+}
+function identifierForRoot(root) {
+  const cached = identifierByRoot.get(root);
+  if (cached)
+    return cached;
+  const userName = gitUserName(root);
+  const identifier = userName ? { ls_attribution_identifier: userName } : {};
+  identifierByRoot.set(root, identifier);
+  return identifier;
+}
+function attributionForRoot(root) {
+  const cached = attributionByRoot.get(root);
+  if (cached)
+    return cached;
+  const attribution = { ...identifierForRoot(root) };
+  const repoName = getRepoName(root);
+  if (repoName) {
+    attribution.repository_name = repoName.name;
+    attribution.repository_provider = repoName.provider;
+    const url = getRepoUrl(repoName.provider, repoName.name);
+    if (url)
+      attribution.repository_url = url;
+  }
+  const gitInfo = getGitInfo(root);
+  if (gitInfo.branch)
+    attribution.git_branch = gitInfo.branch;
+  if (gitInfo.commit)
+    attribution.git_commit_sha = gitInfo.commit;
+  attributionByRoot.set(root, attribution);
+  return attribution;
+}
+function withSessionAuthor(base, sessionRoot) {
+  if (base?.ls_attribution_identifier !== void 0)
+    return base;
+  return { ...base, ...identifierForRoot(sessionRoot) };
+}
+function sessionScopedMetadata(base, sessionCwd) {
+  const sessionRoot = sessionCwd ? rootForPath(sessionCwd) : void 0;
+  return typeof sessionRoot === "string" ? withSessionAuthor(base, sessionRoot) : base;
+}
+function scopedToPath(base, lookup, sessionCwd, pinned) {
+  const { path: toolPath, namedAPath } = lookup;
+  const namedSomewhereNothingSits = namedAPath && !toolPath;
+  if (namedSomewhereNothingSits)
+    return base;
+  const path3 = toolPath ?? sessionCwd;
+  if (!path3 || !isAbsolute2(path3))
+    return base;
+  const root = rootForPath(path3);
+  const gitCouldNotAnswer = root === void 0;
+  if (gitCouldNotAnswer)
+    return base;
+  const pathIsInNoRepository = root === null;
+  if (pathIsInNoRepository)
+    return withoutRepositoryKeys(base, pinned);
+  if (isSessionsOwnRepository(sessionCwd, root)) {
+    return { ...base, ...withoutPinnedKeys(identifierForRoot(root), pinned) };
+  }
+  return {
+    ...withoutRepositoryKeys(base, pinned),
+    ...withoutPinnedKeys(attributionForRoot(root), pinned)
+  };
+}
+function repoScopedMetadata(base, toolInput, sessionCwd) {
+  return scopedToPath(base, toolPathFromInput(toolInput, sessionCwd), sessionCwd, pinnedRepositoryKeys(base));
+}
+var awaitsTheTurn = (metadata) => !metadata?.[REPOSITORY_NAME_KEY] || !metadata?.[ATTRIBUTION_IDENTIFIER_KEY];
+function toolOrigin(toolInput, sessionCwd) {
+  return { cwd: sessionCwd, ...toolPathFromInput(toolInput, sessionCwd) };
+}
+function withSessionRepository(base, sessionCwd) {
+  const sessionRoot = sessionCwd ? rootForPath(sessionCwd) : void 0;
+  if (typeof sessionRoot !== "string")
+    return base;
+  return { ...attributionForRoot(sessionRoot), ...base };
+}
+function settledRepositoryMetadata(base, origin) {
+  const pinned = new Set(REPOSITORY_METADATA_KEYS.filter((key) => base?.[key] !== void 0));
+  const sessionScoped = withSessionRepository(base, origin.cwd);
+  return scopedToPath(sessionScoped, { path: origin.path, namedAPath: origin.namedAPath }, origin.cwd, pinned);
+}
+function settledRunConfig(run, origin) {
+  const extra = run.extra;
+  const metadata = settledRepositoryMetadata(extra?.metadata, origin) ?? extra?.metadata ?? {};
+  const settled = { ...run, extra: { ...extra, metadata } };
+  const open3 = awaitsTheTurn(metadata);
+  if (open3)
+    delete settled.end_time;
+  return { run: settled, open: open3 };
+}
+function turnScopedMetadata(base, toolInputs, sessionCwd) {
+  const sessionRoot = sessionCwd ? rootForPath(sessionCwd) : void 0;
+  if (typeof sessionRoot === "string")
+    return withSessionAuthor(base, sessionRoot);
+  for (const toolInput of toolInputs) {
+    const { path: path3 } = toolPathFromInput(toolInput, sessionCwd);
+    if (!path3)
+      continue;
+    const landedInRepository = typeof rootForPath(path3) === "string";
+    if (landedInRepository)
+      return repoScopedMetadata(base, toolInput, sessionCwd);
+  }
+  return base;
+}
+
+// dist/src/upload-confirm.js
+function watchUploads(client2) {
+  let failure;
+  const createRun = client2.createRun.bind(client2);
+  const updateRun = client2.updateRun.bind(client2);
+  client2.createRun = async (...args) => {
+    try {
+      return await createRun(...args);
+    } catch (err) {
+      failure = err;
+      throw err;
+    }
+  };
+  client2.updateRun = async (...args) => {
+    try {
+      return await updateRun(...args);
+    } catch (err) {
+      failure = err;
+      throw err;
+    }
+  };
+  return {
+    failure() {
+      const seen = failure;
+      failure = void 0;
+      return seen;
+    }
+  };
+}
+
+// dist/src/utils/file-lock.js
+import { readFileSync as readFileSync8, writeFileSync as writeFileSync4, linkSync, mkdirSync as mkdirSync7, unlinkSync as unlinkSync5 } from "node:fs";
+import { dirname as dirname8 } from "node:path";
+import { randomUUID as randomUUID3 } from "node:crypto";
+function lockPath(stateFilePath) {
+  return `${stateFilePath}.lock`;
+}
+function releaseLock(stateFilePath) {
+  try {
+    unlinkSync5(lockPath(stateFilePath));
+  } catch {
+  }
+}
+function claimLock(lock) {
+  const staging = `${lock}.${randomUUID3()}${LOCK_STAGING_SUFFIX}`;
+  try {
+    writeFileSync4(staging, String(process.pid), { mode: PRIVATE_FILE_MODE });
+  } catch {
+    return false;
+  }
+  try {
+    linkSync(staging, lock);
+    return true;
+  } catch {
+    return false;
+  } finally {
+    try {
+      unlinkSync5(staging);
+    } catch {
+    }
+  }
+}
+function holderIsGone(lock) {
+  let pid;
+  try {
+    pid = Number(readFileSync8(lock, "utf-8"));
+  } catch {
+    return false;
+  }
+  if (!Number.isInteger(pid) || pid <= 0)
+    return false;
+  try {
+    process.kill(pid, 0);
+    return false;
+  } catch (err) {
+    return err.code !== "EPERM";
+  }
+}
+function tryAcquireLock(filePath) {
+  const lock = lockPath(filePath);
+  try {
+    mkdirSync7(dirname8(filePath), { recursive: true });
+  } catch {
+    return false;
+  }
+  if (claimLock(lock))
+    return true;
+  if (!holderIsGone(lock))
+    return false;
+  try {
+    unlinkSync5(lock);
+  } catch {
+    return false;
+  }
+  return claimLock(lock);
+}
+
+// dist/src/hooks/flush-queue.js
+function flusherClient(config) {
+  const anonymizer = config.redact ? createSecretAnonymizer(config.redactExtraRules ? { extraRules: config.redactExtraRules } : void 0) : void 0;
+  return new Client({
+    apiKey: config.apiKey || void 0,
+    apiUrl: config.apiBaseUrl,
+    anonymizer,
+    autoBatchTracing: false
+  });
+}
+function writeBack(entry, settled) {
+  if (!entry.record || typeof entry.run.id !== "string")
+    return true;
+  const wrote = entry.where ? recordRun({
+    path: entry.record,
+    run: settled.run,
+    tracing: entry.tracing,
+    origin: entry.origin,
+    closesAt: settled.open ? entry.run.end_time : void 0
+  }) : true;
+  return wrote && recordDelivered(entry.record, entry.run.id);
+}
+async function uploadQueued(dir, config, origin, client2, watch) {
+  for (; ; ) {
+    const entry = nextQueued(dir);
+    if (!entry)
+      break;
+    if (runIsTooOldToUpload(entry)) {
+      warn(`Dropping a queued run LangSmith will no longer accept: ${entry.queue_id}`);
+      abandonQueued(entry);
+      removeQueued(dir, entry.queue_id);
+      continue;
+    }
+    if (entry.origin !== origin) {
+      warn(`Leaving ${dir} alone: its next run was queued for a different LangSmith account`);
+      return false;
+    }
+    const settled = entry.where ? settledRunConfig(entry.run, entry.where) : { run: entry.run, open: false };
+    const runTree = createRunTree({ ...settled.run, client: client2, replicas: config.replicas }, entry.tracing);
+    await runTree.postRun();
+    const failure = watch.failure();
+    if (failure) {
+      warn(`Queued run upload failed: ${failure}`);
+      recordFailure(dir, entry.queue_id);
+      return false;
+    }
+    if (!writeBack(entry, settled)) {
+      warn(`Could not write ${String(entry.run.id)} back to its turn record`);
+      recordFailure(dir, entry.queue_id);
+      return false;
+    }
+    removeQueued(dir, entry.queue_id);
+  }
+  discardEmptyQueue(dir);
+  return true;
+}
+async function settleTurns(recordDir, config, origin, client2, watch) {
+  for (const path3 of listTurnRecords(recordDir)) {
+    const record = readTurnRecord(path3);
+    if (!record)
+      continue;
+    if (record.origin !== origin) {
+      debug(`Leaving ${path3} alone: it was traced for a different LangSmith account`);
+      continue;
+    }
+    try {
+      await reconcileAndClear({ record, client: client2, replicas: config.replicas, watch });
+    } catch (err) {
+      warn(`Could not settle the repository on ${path3}: ${err}`);
+    }
+  }
+  discardDirIfEmpty(recordDir);
+}
+async function drainSession(session, config, origin) {
+  const dir = join8(queueDir(config.stateFilePath), session);
+  const flushTarget = `${dir}.flush`;
+  if (!tryAcquireLock(flushTarget)) {
+    debug(`Another flusher already owns ${dir}`);
+    return;
+  }
+  const client2 = flusherClient(config);
+  const watch = watchUploads(client2);
+  const records = join8(turnRecordRoot(config.stateFilePath), session);
+  try {
+    await uploadQueued(dir, config, origin, client2, watch);
+    await settleTurns(records, config, origin, client2, watch);
+  } finally {
+    releaseLock(flushTarget);
+  }
+}
+function looksAbandoned(session, stateFilePath) {
+  const queued = join8(queueDir(stateFilePath), session);
+  if (foreignQueueLooksAbandoned(queued))
+    return true;
+  return recordsIdleMs(join8(turnRecordRoot(stateFilePath), session)) >= FOREIGN_QUEUE_MIN_RECORD_AGE_MS;
+}
+async function main(cwd, sessionId) {
+  const config = initHook(cwd);
+  if (!config)
+    return;
+  const own = sessionId ? safeName(sessionId) : void 0;
+  const origin = queueOrigin(config);
+  const sessions = /* @__PURE__ */ new Set([
+    ...listQueues(config.stateFilePath),
+    ...listRecordedSessions(config.stateFilePath)
+  ]);
+  if (own)
+    sessions.add(own);
+  for (const session of [...sessions].sort()) {
+    if (session !== own && !looksAbandoned(session, config.stateFilePath)) {
+      debug(`Not flushing ${session}, which another session may still be writing to`);
+      discardEmptyQueue(join8(queueDir(config.stateFilePath), session));
+      continue;
+    }
+    try {
+      await drainSession(session, config, origin);
+    } catch (err) {
+      warn(`Could not flush ${session}: ${err}`);
+    }
+  }
+}
+
+// dist/src/tracing-policy.js
+import { mkdir as mkdir6 } from "node:fs/promises";
+import { dirname as dirname18 } from "node:path";
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/utils/errors.js
+function describe(error2) {
+  return error2 instanceof Error ? error2.message : String(error2);
+}
+function errorCode(error2) {
+  return error2 !== null && typeof error2 === "object" && "code" in error2 && typeof error2.code === "string" ? error2.code : void 0;
+}
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/plugin/constants.js
+var POLICY_LOCK_TIMEOUT_MS = 2e3;
+var POLICY_LOCK_TIMEOUT_ERROR = "Timed out waiting for tracing preference lock";
+var POLICY_LOCK_TIMEOUT_MESSAGE = "Retry; if it persists, remove the lock only after confirming no preference writer is running.";
+var POLICY_UNREADABLE_MESSAGE = "Refusing to overwrite them; repair the file or its permissions before retrying. No preferences were changed.";
+var POLICY_NOT_REGULAR_MESSAGE = "Tracing preferences must be a regular, non-symlink file";
+var POLICY_ASYNC_UPDATE_MESSAGE = "A policy update must change the policy synchronously";
+var POLICY_FILE_MODE = 384;
+var POLICY_FILE_ENCODING = "utf8";
+var POLICY_TEMP_CREATE_FLAG = "wx";
+var POLICY_DIRECTORY_OPEN_FLAG = "r";
+var POLICY_WARNING_SEPARATOR = "; ";
+var POLICY_TEMP_CLOSE_WARNING = "Temporary file close failed";
+var POLICY_TEMP_CLEANUP_WARNING = "Temporary file cleanup failed";
+var POLICY_DIRECTORY_CLOSE_WARNING = "Directory close cleanup failed";
+var POLICY_LOCK_CLEANUP_FAILED_PREFIX = "Preference lock cleanup failed at";
+var POLICY_CANNOT_READ_PREFIX = "Cannot read tracing preferences at";
+var POLICY_DURABILITY_WARNING = "Preference is effective, but crash durability could not be confirmed; retry saving";
+var POLICY_LOCK_RELEASE_WARNING = "Before retrying, remove the lock only after confirming no preference writer is running";
+var WORKER_LOG_MAX_BYTES = 1024 * 1024;
+var POLICY_PARSE_RESULT_MESSAGE = "A policy parser must return a policy";
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/plugin/policy-file.js
+import { randomUUID as randomUUID6 } from "node:crypto";
+import { lstatSync as lstatSync2, readFileSync as readFileSync9 } from "node:fs";
+import { open, rename as rename4, unlink as unlink4 } from "node:fs/promises";
+import { dirname as dirname12 } from "node:path";
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/utils/files/cleanup.js
+import { rmdir, unlink as unlink2 } from "node:fs/promises";
+import { dirname as dirname9 } from "node:path";
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/utils/files/cleanup-constants.js
+var CLEANUP_IGNORED_DIRECTORY_CODES = [
+  FILE_MISSING_CODE,
+  DIRECTORY_NOT_EMPTY_CODE,
+  FILE_EXISTS_CODE,
+  PERMISSION_DENIED_CODE,
+  FILE_BUSY_CODE,
+  FILE_ACCESS_DENIED_CODE
+];
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/utils/files/cleanup.js
+async function removeDirectoryBestEffort(path3, warning) {
+  try {
+    await rmdir(path3);
+  } catch (error2) {
+    if (errorCode(error2) !== FILE_MISSING_CODE)
+      console.warn(warning, describe(error2));
+  }
+}
+async function removeEmptyAncestors(directory, root) {
+  for (let current = directory; current !== root && current !== dirname9(current); ) {
+    try {
+      await rmdir(current);
+    } catch (error2) {
+      const code = errorCode(error2);
+      if (CLEANUP_IGNORED_DIRECTORY_CODES.some((ignored) => ignored === code))
+        return;
+      throw error2;
+    }
+    current = dirname9(current);
+  }
+}
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/constants.js
+var FILE_LOCK_CLAIM_VERSION = 1;
+var FILE_LOCK_CLAIM_EXTENSION = ".json";
+var FILE_LOCK_DIRECTORY_SUFFIX = ".claims";
+var FILE_LOCK_LEGACY_DIRECTORY_SUFFIX = ".lock";
+var FILE_LOCK_TIMEOUT_ERROR_NAME = "FileLockTimeoutError";
+var FILE_LOCK_TEMP_PREFIX = ".";
+var FILE_LOCK_TEMP_SUFFIX = ".tmp";
+var FILE_LOCK_EXCLUSIVE_FLAG = "wx";
+var FILE_LOCK_ENCODING = "utf-8";
+var FILE_LOCK_DEFAULT_TIMEOUT_MS = 5e3;
+var FILE_LOCK_POLL_INTERVAL_MS = 10;
+var FILE_LOCK_DIRECTORY_MODE = 448;
+var FILE_LOCK_FILE_MODE = 384;
+var FILE_LOCK_UNSELECTED_TICKET = 0;
+var FILE_LOCK_NEGATIVE_TICKET_LIMIT = 0;
+var FILE_LOCK_TIMEOUT_MESSAGE = "Timed out waiting for file lock";
+var FILE_LOCK_TICKET_LIMIT_MESSAGE = "File lock ticket limit reached";
+var FILE_LOCK_RELEASE_MESSAGE = "Could not release file lock claim";
+var FILE_LOCK_INVALID_TIMEOUT_MESSAGE = "timeoutMs must be a finite positive number";
+var FILE_LOCK_ACQUIRE_MESSAGE = "Could not acquire file lock claim";
+var FILE_LOCK_UNSAFE_DIRECTORY_MESSAGE = "Unsafe file lock claims directory";
+var FILE_LOCK_RENAME_RETRY_TIMEOUT_MS = 100;
+var FILE_LOCK_HEARTBEAT_MS = 500;
+var FILE_LOCK_STALE_CLAIM_MS = 3e3;
+var FILE_LOCK_TRY_CHOOSING_WAIT_MS = 1e3;
+var FILE_LOCK_DIRECTORY_CONTENTION_CODES = [
+  PERMISSION_DENIED_CODE,
+  FILE_ACCESS_DENIED_CODE
+];
+var FILE_LOCK_BUSY_FILE_CODES = [
+  ...FILE_LOCK_DIRECTORY_CONTENTION_CODES,
+  FILE_BUSY_CODE
+];
+var FILE_LOCK_HEARTBEAT_WARNING = "Could not refresh a file lock claim:";
+var FILE_LOCK_COMPATIBLE_ACQUIRE_CLEANUP_MESSAGE = "Could not release the legacy lock gate after shared lock acquisition failed";
+var FILE_LOCK_COMPATIBLE_RELEASE_MESSAGE = "Could not release compatible file lock";
+var FILE_LOCK_COMPATIBLE_GATE_CHANGED_MESSAGE = "Legacy file lock gate changed before release";
+var FILE_LOCK_COMPATIBLE_OWNER_FILE = "owner";
+var FILE_LOCK_COMPATIBLE_OWNER_MESSAGE = "Could not record the legacy file lock gate owner";
+var FILE_LOCK_COMPATIBLE_OWNER_PID_PATTERN = /^[1-9]\d*$/u;
+var FILE_LOCK_COMPATIBLE_ABANDONED_GATE_MS = 5e3;
+var FILE_LOCK_COMPATIBLE_STALE_SUFFIX = ".stale";
+var FILE_LOCK_GATE_CLEANUP_WARNING = "Could not remove a half-created lock folder:";
+var FILE_LOCK_STALE_GATE_CLEANUP_WARNING = "Could not remove an old lock folder:";
+var STORAGE_STALE_FILE_MAX_AGE_MS = 2 * 60 * 60 * 1e3;
+var FILE_LOCK_LOST_MESSAGE = "The file lock was taken over before the write finished";
+var STORAGE_UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+var STORAGE_ENGINE_FILE_PATTERNS = [
+  new RegExp(`^\\.${STORAGE_UUID}(\\.${STORAGE_UUID})?\\.tmp$`, "u"),
+  new RegExp(`^wake-[0-9a-f]{64}\\.active\\.${STORAGE_UUID}(\\.attempt\\.[1-9]\\d*)?\\.json$`, "u"),
+  /^wake-[0-9a-f]{64}\.launching$/u
+];
+var STORAGE_CLAIM_FILE = new RegExp(`^${STORAGE_UUID}\\.json$`, "u");
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/lock-folders.js
+async function removeEmptyLockFolders(lockPath2, root) {
+  await removeEmptyAncestors(`${lockPath2}${FILE_LOCK_DIRECTORY_SUFFIX}`, root);
+}
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/file-lock.js
+import { chmod, link, lstat as lstat2, mkdir as mkdir4, readFile as readFile2, readdir as readdir3, rename as rename3, writeFile as writeFile3 } from "node:fs/promises";
+import { performance as performance4 } from "node:perf_hooks";
+import { setTimeout as delay } from "node:timers/promises";
+import { randomUUID as randomUUID5 } from "node:crypto";
+import { dirname as dirname11, join as join10, resolve as resolve5 } from "node:path";
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/errors.js
+import { resolve as resolve4 } from "node:path";
+var FileLockTimeoutError = class extends Error {
+  blockedPath;
+  constructor(blockedPath) {
+    super(`${FILE_LOCK_TIMEOUT_MESSAGE}: ${resolve4(blockedPath)}`);
+    this.name = FILE_LOCK_TIMEOUT_ERROR_NAME;
+    this.blockedPath = resolve4(blockedPath);
+  }
+};
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/file-lock-heartbeat.js
+import { utimes } from "node:fs/promises";
+var heartbeats = /* @__PURE__ */ new Map();
+function startHeartbeat(path3, id) {
+  const timer = setInterval(() => {
+    const now = /* @__PURE__ */ new Date();
+    utimes(path3, now, now).catch(warnUnlessMissing);
+  }, FILE_LOCK_HEARTBEAT_MS);
+  timer.unref();
+  heartbeats.set(id, timer);
+}
+function stopHeartbeat(id) {
+  clearInterval(heartbeats.get(id));
+  heartbeats.delete(id);
+}
+function warnUnlessMissing(error2) {
+  if (errorCode(error2) !== FILE_MISSING_CODE)
+    console.warn(FILE_LOCK_HEARTBEAT_WARNING, describe(error2));
+}
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/legacy-gate.js
+import { lstat, mkdir as mkdir3, readFile, rename as rename2, rmdir as rmdir2, writeFile as writeFile2 } from "node:fs/promises";
+import { performance as performance3 } from "node:perf_hooks";
+import { randomUUID as randomUUID4 } from "node:crypto";
+import { dirname as dirname10, join as join9 } from "node:path";
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/file-lock-support.js
+import { unlink as unlink3 } from "node:fs/promises";
+import { performance as performance2 } from "node:perf_hooks";
+function processIsAlive(pid) {
+  try {
+    process.kill(pid, PROCESS_CHECK_SIGNAL);
+    return true;
+  } catch (error2) {
+    if (errorCode(error2) === PROCESS_MISSING_CODE)
+      return false;
+    return void 0;
+  }
+}
+async function removeFile(filePath) {
+  try {
+    await unlink3(filePath);
+    return true;
+  } catch (error2) {
+    if (errorCode(error2) === FILE_MISSING_CODE)
+      return true;
+    return false;
+  }
+}
+function isBusyFileError(error2) {
+  return FILE_LOCK_BUSY_FILE_CODES.includes(errorCode(error2) ?? "");
+}
+function timeoutMs(options) {
+  const value = options?.timeoutMs ?? FILE_LOCK_DEFAULT_TIMEOUT_MS;
+  if (!Number.isFinite(value) || value <= 0)
+    throw new RangeError(FILE_LOCK_INVALID_TIMEOUT_MESSAGE);
+  return value;
+}
+function waitForNextScan(deadline, blockedPath) {
+  const remaining = deadline - performance2.now();
+  if (remaining <= 0)
+    return Promise.reject(new FileLockTimeoutError(blockedPath));
+  return new Promise((resolvePromise) => setTimeout(resolvePromise, Math.min(FILE_LOCK_POLL_INTERVAL_MS, remaining)));
+}
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/legacy-gate.js
+async function createLegacyGate(gatePath) {
+  await mkdir3(gatePath, { mode: FILE_LOCK_DIRECTORY_MODE });
+  const stat3 = await lstat(gatePath);
+  if (!stat3.isDirectory())
+    throw new Error(FILE_LOCK_COMPATIBLE_GATE_CHANGED_MESSAGE);
+  await recordLegacyGateOwner(gatePath);
+  startHeartbeat(join9(gatePath, FILE_LOCK_COMPATIBLE_OWNER_FILE), gatePath);
+  return { path: gatePath, dev: stat3.dev, ino: stat3.ino, birthtimeMs: stat3.birthtimeMs };
+}
+async function waitOutContention(attempt, error2) {
+  const { gatePath, filePath, deadline, tryAcquire } = attempt;
+  const code = errorCode(error2);
+  const permissionDenied = FILE_LOCK_DIRECTORY_CONTENTION_CODES.includes(code ?? "");
+  if (code !== FILE_EXISTS_CODE && !permissionDenied)
+    throw error2;
+  let isContended = false;
+  try {
+    const gate = await lstat(gatePath);
+    const isDirectory = gate.isDirectory();
+    isContended = isDirectory || gate.isFile() && code === FILE_EXISTS_CODE;
+    if (isContended && await legacyGateIsAbandoned(gatePath, isDirectory, gate.mtimeMs)) {
+      if (!await reclaimLegacyGate(gatePath, filePath, tryAcquire))
+        await waitForNextScan(deadline, gatePath);
+      return;
+    }
+  } catch (statError) {
+    if (errorCode(statError) === FILE_MISSING_CODE) {
+      if (code === FILE_EXISTS_CODE) {
+        attempt.retriedMissingPermission = false;
+        await waitForNextScan(deadline, gatePath);
+        return;
+      }
+      if (permissionDenied && !attempt.retriedMissingPermission) {
+        attempt.retriedMissingPermission = true;
+        return;
+      }
+    }
+    throw error2;
+  }
+  if (!isContended)
+    throw error2;
+  attempt.retriedMissingPermission = false;
+  await waitForNextScan(deadline, gatePath);
+}
+async function acquireLegacyDirectoryGate(filePath, deadline, tryAcquire) {
+  const gatePath = `${filePath}${FILE_LOCK_LEGACY_DIRECTORY_SUFFIX}`;
+  await mkdir3(dirname10(filePath), { recursive: true, mode: FILE_LOCK_DIRECTORY_MODE });
+  const attempt = {
+    gatePath,
+    filePath,
+    deadline,
+    tryAcquire,
+    retriedMissingPermission: false
+  };
+  for (; ; ) {
+    if (performance3.now() >= deadline)
+      throw new FileLockTimeoutError(gatePath);
+    try {
+      return await createLegacyGate(gatePath);
+    } catch (error2) {
+      await waitOutContention(attempt, error2);
+    }
+  }
+}
+async function releaseLegacyDirectoryGate(gate) {
+  stopHeartbeat(gate.path);
+  let stat3;
+  try {
+    stat3 = await lstat(gate.path);
+  } catch (error2) {
+    if (errorCode(error2) === FILE_MISSING_CODE)
+      return;
+    throw error2;
+  }
+  if (!stat3.isDirectory() || stat3.dev !== gate.dev || stat3.ino !== gate.ino || stat3.birthtimeMs !== gate.birthtimeMs) {
+    throw new Error(FILE_LOCK_COMPATIBLE_GATE_CHANGED_MESSAGE);
+  }
+  await removeFile(join9(gate.path, FILE_LOCK_COMPATIBLE_OWNER_FILE));
+  await rmdir2(gate.path);
+}
+async function recordLegacyGateOwner(gatePath) {
+  try {
+    await writeFile2(join9(gatePath, FILE_LOCK_COMPATIBLE_OWNER_FILE), String(process.pid), {
+      flag: FILE_LOCK_EXCLUSIVE_FLAG,
+      mode: FILE_LOCK_FILE_MODE
+    });
+  } catch (error2) {
+    await removeDirectoryBestEffort(gatePath, FILE_LOCK_GATE_CLEANUP_WARNING);
+    throw new Error(FILE_LOCK_COMPATIBLE_OWNER_MESSAGE, { cause: error2 });
+  }
+}
+async function legacyGateIsAbandoned(gatePath, isDirectory, modifiedAtMs) {
+  let contents;
+  try {
+    contents = await readFile(isDirectory ? join9(gatePath, FILE_LOCK_COMPATIBLE_OWNER_FILE) : gatePath, FILE_LOCK_ENCODING);
+  } catch (error2) {
+    if (errorCode(error2) !== FILE_MISSING_CODE)
+      return false;
+    contents = "";
+  }
+  const pid = FILE_LOCK_COMPATIBLE_OWNER_PID_PATTERN.test(contents.trim()) ? Number(contents.trim()) : void 0;
+  if (pid !== void 0 && Number.isSafeInteger(pid) && pid > 0)
+    return processIsAlive(pid) === false || isDirectory && await ownerHeartbeatStopped(gatePath);
+  return !isDirectory && Date.now() - modifiedAtMs >= FILE_LOCK_COMPATIBLE_ABANDONED_GATE_MS;
+}
+async function ownerHeartbeatStopped(gatePath) {
+  try {
+    const owner = await lstat(join9(gatePath, FILE_LOCK_COMPATIBLE_OWNER_FILE));
+    return Date.now() - owner.mtimeMs >= FILE_LOCK_STALE_CLAIM_MS;
+  } catch {
+    return false;
+  }
+}
+async function reclaimLegacyGate(gatePath, filePath, tryAcquire) {
+  const takeover = await tryAcquire(filePath);
+  if (!takeover)
+    return false;
+  try {
+    let gate;
+    try {
+      gate = await lstat(gatePath);
+    } catch (error2) {
+      if (errorCode(error2) === FILE_MISSING_CODE)
+        return true;
+      throw error2;
+    }
+    const isDirectory = gate.isDirectory();
+    if (!await legacyGateIsAbandoned(gatePath, isDirectory, gate.mtimeMs))
+      return false;
+    const stalePath = `${gatePath}.${randomUUID4()}${FILE_LOCK_COMPATIBLE_STALE_SUFFIX}`;
+    try {
+      await rename2(gatePath, stalePath);
+    } catch (error2) {
+      if (isBusyFileError(error2))
+        return false;
+      throw error2;
+    }
+    if (!isDirectory) {
+      await removeFile(stalePath);
+      return true;
+    }
+    await removeFile(join9(stalePath, FILE_LOCK_COMPATIBLE_OWNER_FILE));
+    await removeDirectoryBestEffort(stalePath, FILE_LOCK_STALE_GATE_CLEANUP_WARNING);
+    return true;
+  } finally {
+    await takeover.release();
+  }
+}
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/file-lock.js
+function parseClaim(value, id) {
+  if (!isPlainRecord(value))
+    return void 0;
+  if (value.version !== FILE_LOCK_CLAIM_VERSION || value.id !== id || typeof value.pid !== "number" || !Number.isSafeInteger(value.pid) || value.pid <= 0 || typeof value.choosing !== "boolean" || typeof value.ticket !== "number" || !Number.isSafeInteger(value.ticket) || value.ticket < FILE_LOCK_NEGATIVE_TICKET_LIMIT || (value.choosing ? value.ticket !== FILE_LOCK_UNSELECTED_TICKET : value.ticket === FILE_LOCK_UNSELECTED_TICKET)) {
+    return void 0;
+  }
+  return value;
+}
+async function publishClaim(filePath, claim, create, deadline) {
+  const temporaryPath = join10(dirname11(filePath), `${FILE_LOCK_TEMP_PREFIX}${claim.id}.${randomUUID5()}${FILE_LOCK_TEMP_SUFFIX}`);
+  try {
+    await writeFile3(temporaryPath, JSON.stringify(claim), {
+      flag: FILE_LOCK_EXCLUSIVE_FLAG,
+      mode: FILE_LOCK_FILE_MODE
+    });
+    if (create)
+      await link(temporaryPath, filePath);
+    else {
+      const replacementDeadline = deadline ?? performance4.now() + FILE_LOCK_RENAME_RETRY_TIMEOUT_MS;
+      for (; ; ) {
+        try {
+          await rename3(temporaryPath, filePath);
+          break;
+        } catch (error2) {
+          if (errorCode(error2) !== PERMISSION_DENIED_CODE)
+            throw error2;
+          await waitForNextScan(replacementDeadline, dirname11(filePath));
+        }
+      }
+    }
+  } finally {
+    await removeFile(temporaryPath);
+  }
+}
+async function createClaim(claimDirectory) {
+  for (; ; ) {
+    const id = randomUUID5();
+    const claim = {
+      version: FILE_LOCK_CLAIM_VERSION,
+      id,
+      pid: process.pid,
+      choosing: true,
+      ticket: FILE_LOCK_UNSELECTED_TICKET
+    };
+    try {
+      const path3 = join10(claimDirectory, `${id}${FILE_LOCK_CLAIM_EXTENSION}`);
+      await publishClaim(path3, claim, true);
+      startHeartbeat(path3, id);
+      return claim;
+    } catch (error2) {
+      if (errorCode(error2) !== FILE_EXISTS_CODE)
+        throw error2;
+    }
+  }
+}
+async function scanClaims(claimDirectory, ownPath) {
+  const entries = await readdir3(claimDirectory, { withFileTypes: true });
+  const claims = [];
+  const reference = ownPath === void 0 ? void 0 : await modifiedAt(ownPath);
+  const abandoned = async (path3) => {
+    if (reference === void 0)
+      return false;
+    const modified = await modifiedAt(path3);
+    if (modified === void 0 || reference - modified < FILE_LOCK_STALE_CLAIM_MS)
+      return false;
+    return removeFile(path3);
+  };
+  for (const entry of entries) {
+    if (!entry.name.endsWith(FILE_LOCK_CLAIM_EXTENSION))
+      continue;
+    const id = entry.name.slice(0, -FILE_LOCK_CLAIM_EXTENSION.length);
+    const path3 = join10(claimDirectory, entry.name);
+    if (!entry.isFile())
+      return { claims, blocked: true };
+    let value;
+    try {
+      value = JSON.parse(await readFile2(path3, FILE_LOCK_ENCODING));
+    } catch (error2) {
+      if (errorCode(error2) === FILE_MISSING_CODE)
+        continue;
+      if (await abandoned(path3))
+        continue;
+      return {
+        claims,
+        blocked: true,
+        transient: isBusyFileError(error2)
+      };
+    }
+    const claim = parseClaim(value, id);
+    if (!claim) {
+      if (await abandoned(path3))
+        continue;
+      return { claims, blocked: true };
+    }
+    const alive = processIsAlive(claim.pid);
+    if (alive === false) {
+      if (!await removeFile(path3))
+        return { claims, blocked: true };
+      continue;
+    }
+    if (await abandoned(path3))
+      continue;
+    if (alive === void 0)
+      return { claims, blocked: true };
+    claims.push(claim);
+  }
+  return { claims, blocked: false };
+}
+async function modifiedAt(path3) {
+  try {
+    return (await lstat2(path3)).mtimeMs;
+  } catch (error2) {
+    if (errorCode(error2) === FILE_MISSING_CODE)
+      return void 0;
+    throw error2;
+  }
+}
+function claimPath(claimDirectory, id) {
+  return join10(claimDirectory, `${id}${FILE_LOCK_CLAIM_EXTENSION}`);
+}
+function hasClaimState(claims, id, choosing, ticket) {
+  const claim = claims.find((peer) => peer.id === id);
+  return claim?.choosing === choosing && claim.ticket === ticket;
+}
+function makeHandle(claimDirectory, claim) {
+  let releasePromise;
+  return {
+    async assertHeld() {
+      if (await modifiedAt(claimPath(claimDirectory, claim.id)) === void 0)
+        throw new Error(FILE_LOCK_LOST_MESSAGE);
+    },
+    release() {
+      stopHeartbeat(claim.id);
+      releasePromise ??= removeFile(claimPath(claimDirectory, claim.id)).then((removed) => {
+        if (!removed)
+          throw new Error(FILE_LOCK_RELEASE_MESSAGE);
+      });
+      return releasePromise;
+    }
+  };
+}
+async function beginClaim(filePath) {
+  const claimDirectory = `${resolve5(filePath)}${FILE_LOCK_DIRECTORY_SUFFIX}`;
+  for (; ; ) {
+    try {
+      await assertSafeClaimDirectory(claimDirectory);
+      await mkdir4(claimDirectory, { recursive: true, mode: FILE_LOCK_DIRECTORY_MODE });
+      await assertSafeClaimDirectory(claimDirectory);
+      await chmod(claimDirectory, FILE_LOCK_DIRECTORY_MODE);
+      return { claimDirectory, claim: await createClaim(claimDirectory) };
+    } catch (error2) {
+      if (errorCode(error2) !== FILE_MISSING_CODE)
+        throw error2;
+    }
+  }
+}
+async function assertSafeClaimDirectory(claimDirectory) {
+  let stat3;
+  try {
+    stat3 = await lstat2(claimDirectory);
+  } catch (error2) {
+    if (errorCode(error2) === FILE_MISSING_CODE)
+      return;
+    throw error2;
+  }
+  if (stat3.isSymbolicLink() || !stat3.isDirectory())
+    throw new Error(FILE_LOCK_UNSAFE_DIRECTORY_MESSAGE);
+}
+function isStillBusy(attempt, scan) {
+  return !attempt.waitForPeers && scan.blocked && scan.transient === true && performance4.now() < attempt.busyDeadline;
+}
+async function waitOrReleaseClaim(attempt) {
+  if (!attempt.waitForPeers) {
+    await makeHandle(attempt.claimDirectory, attempt.claim).release();
+    return false;
+  }
+  await waitForNextScan(attempt.deadline, attempt.claimDirectory);
+  return true;
+}
+async function observePeers(attempt, expectedChoosing, expectedTicket) {
+  for (; ; ) {
+    const scan = await scanClaims(attempt.claimDirectory, attempt.ownPath);
+    if (isStillBusy(attempt, scan)) {
+      await delay(FILE_LOCK_POLL_INTERVAL_MS);
+      continue;
+    }
+    if (scan.blocked || !hasClaimState(scan.claims, attempt.claim.id, expectedChoosing, expectedTicket)) {
+      if (!await waitOrReleaseClaim(attempt))
+        return void 0;
+      continue;
+    }
+    return scan.claims;
+  }
+}
+async function takeTicket(attempt) {
+  const { claim, claimDirectory, ownPath, waitForPeers } = attempt;
+  const claims = await observePeers(attempt, true, FILE_LOCK_UNSELECTED_TICKET);
+  if (claims === void 0)
+    return void 0;
+  if (!waitForPeers && claims.some((peer) => peer.id !== claim.id && !peer.choosing)) {
+    await makeHandle(claimDirectory, claim).release();
+    return void 0;
+  }
+  let maxTicket = FILE_LOCK_UNSELECTED_TICKET;
+  for (const peer of claims)
+    maxTicket = Math.max(maxTicket, peer.ticket);
+  if (maxTicket >= Number.MAX_SAFE_INTEGER)
+    throw new Error(FILE_LOCK_TICKET_LIMIT_MESSAGE);
+  const ticketedClaim = { ...claim, choosing: false, ticket: maxTicket + 1 };
+  await publishClaim(ownPath, ticketedClaim, false, waitForPeers ? attempt.deadline : attempt.busyDeadline);
+  return ticketedClaim;
+}
+async function waitForTurn(attempt, ticketedClaim) {
+  const { claim, claimDirectory, waitForPeers } = attempt;
+  const choosingDeadline = performance4.now() + FILE_LOCK_TRY_CHOOSING_WAIT_MS;
+  for (; ; ) {
+    const claims = await observePeers(attempt, false, ticketedClaim.ticket);
+    if (claims === void 0)
+      return void 0;
+    const peers = claims.filter((peer) => peer.id !== claim.id);
+    if (!waitForPeers && !peers.some((peer) => !peer.choosing && precedes(peer, ticketedClaim)) && peers.some((peer) => peer.choosing) && performance4.now() < choosingDeadline) {
+      await delay(FILE_LOCK_POLL_INTERVAL_MS);
+      continue;
+    }
+    if (peers.some((peer) => precedes(peer, ticketedClaim))) {
+      if (!await waitOrReleaseClaim(attempt))
+        return void 0;
+      continue;
+    }
+    if (waitForPeers && performance4.now() > attempt.deadline)
+      throw new FileLockTimeoutError(claimDirectory);
+    return { claimDirectory, claim: ticketedClaim };
+  }
+}
+async function acquireClaim(filePath, waitForPeers, deadline) {
+  const { claimDirectory, claim } = await beginClaim(filePath);
+  const attempt = {
+    filePath,
+    claimDirectory,
+    claim,
+    ownPath: claimPath(claimDirectory, claim.id),
+    waitForPeers,
+    deadline,
+    busyDeadline: performance4.now() + FILE_LOCK_TRY_CHOOSING_WAIT_MS
+  };
+  try {
+    const ticketedClaim = await takeTicket(attempt);
+    if (!ticketedClaim)
+      return void 0;
+    return await waitForTurn(attempt, ticketedClaim);
+  } catch (error2) {
+    await makeHandle(claimDirectory, claim).release();
+    throw error2;
+  }
+}
+async function tryAcquireFileLock(filePath) {
+  const acquired = await acquireClaim(filePath, false, 0);
+  if (!acquired)
+    return void 0;
+  return makeHandle(acquired.claimDirectory, acquired.claim);
+}
+async function acquireCompatibleDirectoryFileLock(filePath, options) {
+  const resolvedPath = resolve5(filePath);
+  const deadline = performance4.now() + timeoutMs(options);
+  const gate = await acquireLegacyDirectoryGate(resolvedPath, deadline, tryAcquireFileLock);
+  let acquired;
+  try {
+    acquired = await acquireClaim(resolvedPath, true, deadline);
+    if (!acquired)
+      throw new Error(FILE_LOCK_ACQUIRE_MESSAGE);
+  } catch (error2) {
+    try {
+      await releaseLegacyDirectoryGate(gate);
+    } catch (cleanupError) {
+      throw new AggregateError([error2, cleanupError], FILE_LOCK_COMPATIBLE_ACQUIRE_CLEANUP_MESSAGE, {
+        cause: cleanupError
+      });
+    }
+    throw error2;
+  }
+  const sharedHandle = makeHandle(acquired.claimDirectory, acquired.claim);
+  let releasePromise;
+  return {
+    assertHeld: () => sharedHandle.assertHeld(),
+    release() {
+      releasePromise ??= (async () => {
+        const errors = [];
+        try {
+          await sharedHandle.release();
+        } catch (error2) {
+          errors.push(error2);
+        }
+        try {
+          await releaseLegacyDirectoryGate(gate);
+        } catch (error2) {
+          errors.push(error2);
+        }
+        if (errors.length === 1)
+          throw errors[0];
+        if (errors.length > 1)
+          throw new AggregateError(errors, FILE_LOCK_COMPATIBLE_RELEASE_MESSAGE);
+      })();
+      return releasePromise;
+    }
+  };
+}
+function precedes(left, right) {
+  return left.ticket < right.ticket || left.ticket === right.ticket && left.id < right.id;
+}
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/plugin/policy-file.js
+function readPolicyFile(path3, options) {
+  let raw;
+  try {
+    if (options.requireRegularFile && !lstatSync2(path3).isFile())
+      throw new Error(POLICY_NOT_REGULAR_MESSAGE);
+    raw = readFileSync9(path3, POLICY_FILE_ENCODING);
+  } catch (error2) {
+    if (errorCode(error2) === FILE_MISSING_CODE) {
+      try {
+        lstatSync2(path3);
+      } catch (statError) {
+        if (errorCode(statError) === FILE_MISSING_CODE)
+          return options.empty();
+        throw statError;
+      }
+    }
+    throw error2;
+  }
+  const policy = options.parse(JSON.parse(raw));
+  if (policy === void 0)
+    throw new TypeError(POLICY_PARSE_RESULT_MESSAGE);
+  return policy;
+}
+async function updatePolicyFile(path3, options, update) {
+  const lockPath2 = `${path3}${FILE_LOCK_DIRECTORY_SUFFIX}`;
+  const lock = await acquirePolicyLock(path3);
+  const warnings = [];
+  try {
+    const policy = readPolicyForUpdate(path3, options);
+    const updated = update(policy);
+    if (isThenable(updated))
+      throw new TypeError(POLICY_ASYNC_UPDATE_MESSAGE);
+    await replacePolicyFile(path3, updated === void 0 ? policy : updated, warnings);
+    if (process.platform !== WINDOWS_PLATFORM)
+      await syncPolicyDirectory(path3, warnings);
+  } finally {
+    await bestEffort(warnings, async () => {
+      await lock.release();
+      await removeEmptyLockFolders(path3, dirname12(path3));
+    }, `${POLICY_LOCK_CLEANUP_FAILED_PREFIX} ${lockPath2}. ${POLICY_LOCK_RELEASE_WARNING}`);
+  }
+  return warnings.length ? { warning: warnings.join(POLICY_WARNING_SEPARATOR) } : {};
+}
+async function bestEffort(warnings, action, message) {
+  try {
+    await action();
+  } catch (error2) {
+    warnings.push(`${message}: ${describe(error2)}`);
+  }
+}
+function acquirePolicyLock(path3) {
+  return acquireCompatibleDirectoryFileLock(path3, {
+    timeoutMs: POLICY_LOCK_TIMEOUT_MS
+  }).catch((error2) => {
+    const timeout = findLockTimeout(error2);
+    if (timeout !== void 0) {
+      throw new Error(`${POLICY_LOCK_TIMEOUT_ERROR} ${timeout.blockedPath}. ${POLICY_LOCK_TIMEOUT_MESSAGE}`, { cause: error2 });
+    }
+    throw error2;
+  });
+}
+function readPolicyForUpdate(path3, options) {
+  try {
+    return readPolicyFile(path3, options);
+  } catch (error2) {
+    throw new Error(`${POLICY_CANNOT_READ_PREFIX} ${path3}. ${POLICY_UNREADABLE_MESSAGE}`, {
+      cause: error2
+    });
+  }
+}
+async function writePolicyTemp(tempPath, policy, warnings) {
+  const temp = await open(tempPath, POLICY_TEMP_CREATE_FLAG, POLICY_FILE_MODE);
+  try {
+    await temp.writeFile(`${JSON.stringify(policy)}
+`, POLICY_FILE_ENCODING);
+    await temp.sync();
+  } catch (error2) {
+    await bestEffort(warnings, () => temp.close(), POLICY_TEMP_CLOSE_WARNING);
+    throw error2;
+  }
+  await temp.close();
+}
+async function replacePolicyFile(path3, policy, warnings) {
+  const tempPath = `${path3}.${process.pid}.${randomUUID6()}.tmp`;
+  try {
+    await writePolicyTemp(tempPath, policy, warnings);
+    await rename4(tempPath, path3);
+  } catch (error2) {
+    await bestEffort(warnings, () => unlink4(tempPath), POLICY_TEMP_CLEANUP_WARNING);
+    throw error2;
+  }
+}
+async function syncPolicyDirectory(path3, warnings) {
+  await bestEffort(warnings, async () => {
+    const directory = await open(dirname12(path3), POLICY_DIRECTORY_OPEN_FLAG);
+    try {
+      await directory.sync();
+    } finally {
+      await bestEffort(warnings, () => directory.close(), POLICY_DIRECTORY_CLOSE_WARNING);
+    }
+  }, POLICY_DURABILITY_WARNING);
+}
+function isThenable(value) {
+  return typeof Reflect.get(Object(value), "then") === "function";
+}
+function findLockTimeout(error2) {
+  if (error2 instanceof FileLockTimeoutError)
+    return error2;
+  if (!(error2 instanceof AggregateError))
+    return void 0;
+  return error2.errors.map(findLockTimeout).find((found) => found !== void 0);
+}
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/capture/capture-store.js
+import { lstat as lstat6 } from "node:fs/promises";
+import { basename as basename2, dirname as dirname15, join as join15, resolve as resolve8 } from "node:path";
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/capture/paths.js
+import { createHash } from "node:crypto";
+import { resolve as resolve6, join as join11 } from "node:path";
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/capture/utils/atomic-file.js
+import { constants as fsConstants } from "node:fs";
+import { chmod as chmod2, link as link2, lstat as lstat3, mkdir as mkdir5, open as open2, rename as rename5, unlink as unlink5 } from "node:fs/promises";
+import { dirname as dirname13, isAbsolute as isAbsolute3, join as join12, relative, sep } from "node:path";
+import { randomUUID as randomUUID7 } from "node:crypto";
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/utils/files/private-directory.js
+import { lstat as lstat4, readdir as readdir4 } from "node:fs/promises";
+import { isAbsolute as isAbsolute4, join as join13, relative as relative2, resolve as resolve7, sep as sep2 } from "node:path";
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/capture/utils/digest.js
+import { createHash as createHash2 } from "node:crypto";
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/capture/markers.js
+import { lstat as lstat5 } from "node:fs/promises";
+import { basename, dirname as dirname14, join as join14 } from "node:path";
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/tracing/background-worker/worker.js
+import { randomUUID as randomUUID8 } from "node:crypto";
+import { resolve as resolve10 } from "node:path";
+import { setTimeout as delay2 } from "node:timers/promises";
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/tracing/background-worker/paths.js
+import { join as join16, resolve as resolve9 } from "node:path";
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/tracing/background-worker/state.js
+import { join as join17 } from "node:path";
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/tracing/lifecycle/bridge.js
+import { join as join20, resolve as resolve12 } from "node:path";
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/stale-files.js
+import { lstat as lstat7, readdir as readdir5, rmdir as rmdir3 } from "node:fs/promises";
+import { basename as basename3, dirname as dirname16, join as join18 } from "node:path";
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/tracing/delivery/coordinator.js
+import { join as join19, resolve as resolve11 } from "node:path";
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/tracing/delivery/constants.js
+var DELIVERY_RETRY_MAX_MS = 30 * 60 * 1e3;
+var DELIVERY_DEFAULT_MAX_AGE_MS = 6 * 60 * 60 * 1e3;
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/storage/capture/retry-state.js
+var PROCESS_STARTED_AT_MS = Date.now();
+
+// node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/tracing/delivery/deliver.js
+import { setTimeout as delay3 } from "node:timers/promises";
+
 // node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/tracing/upload/constants.js
 var UPLOAD_REPLICA_UUID_V5_NAMESPACE = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
 var UPLOAD_REPLICA_UUID_V5_NAMESPACE_BYTES = Buffer.from(UPLOAD_REPLICA_UUID_V5_NAMESPACE.replaceAll("-", ""), "hex");
@@ -16132,10 +16289,10 @@ var SETTLEMENT_QUIET_TURN_MS = 2 * 60 * 60 * 1e3;
 import { createHash as createHash5 } from "node:crypto";
 
 // node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/tracing/reconstruction/worker.js
-import { join as join21, resolve as resolve12 } from "node:path";
+import { join as join21, resolve as resolve13 } from "node:path";
 
 // node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/tracing/engine/options.js
-import { resolve as resolve13 } from "node:path";
+import { resolve as resolve14 } from "node:path";
 
 // node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/tracing/engine/constants.js
 var TRACING_ENGINE_FOREIGN_SESSION_MIN_AGE_MS = 2 * 60 * 60 * 1e3;
@@ -16146,8 +16303,8 @@ import { setTimeout as delay4 } from "node:timers/promises";
 
 // node_modules/.pnpm/@langchain+plugins-base@0.4.1_langsmith@0.10.5/node_modules/@langchain/plugins-base/dist/plugin/worker-launch.js
 import { spawn } from "node:child_process";
-import { closeSync as closeSync2, mkdirSync as mkdirSync8, openSync as openSync2, statSync as statSync7 } from "node:fs";
-import { dirname as dirname15 } from "node:path";
+import { closeSync as closeSync2, mkdirSync as mkdirSync8, openSync as openSync2, statSync as statSync8 } from "node:fs";
+import { dirname as dirname17 } from "node:path";
 
 // dist/src/utils/records.js
 function isRecord(value) {
@@ -16195,7 +16352,7 @@ async function setThreadTracingMode(stateFilePath, sessionId, mode) {
     throw new Error("A nonempty session ID and a full/metadata tracing mode are required");
   }
   const path3 = tracingPolicyPath(stateFilePath);
-  await mkdir6(dirname16(path3), { recursive: true });
+  await mkdir6(dirname18(path3), { recursive: true });
   return updatePolicyFile(path3, POLICY_FILE, (policy) => {
     policy.threads = { ...policy.threads, [sessionId]: mode };
   });
@@ -16208,11 +16365,11 @@ function resolveTurnTracingMode(config, sessionId, ...snapshots) {
 }
 
 // dist/src/transcript.js
-import { readFileSync as readFileSync10, statSync as statSync8, fstatSync, openSync as openSync3, readSync, closeSync as closeSync3 } from "node:fs";
+import { readFileSync as readFileSync10, statSync as statSync9, fstatSync, openSync as openSync3, readSync, closeSync as closeSync3 } from "node:fs";
 function readTranscript(filePath, afterLine = -1) {
   let size;
   try {
-    size = statSync8(filePath).size;
+    size = statSync9(filePath).size;
   } catch {
     return { messages: [], lastLine: afterLine };
   }
@@ -16279,7 +16436,7 @@ function readTranscript(filePath, afterLine = -1) {
 }
 function getTranscriptEndLine(filePath) {
   try {
-    const size = statSync8(filePath).size;
+    const size = statSync9(filePath).size;
     if (size === 0)
       return -1;
     if (size <= MAX_FULL_READ_BYTES) {
@@ -16543,7 +16700,7 @@ async function releaseStateLock(lock) {
 }
 
 // dist/src/state-pending.js
-import { mkdirSync as mkdirSync9, readdirSync as readdirSync4, readFileSync as readFileSync11, rmdirSync as rmdirSync2, rmSync, statSync as statSync9 } from "node:fs";
+import { mkdirSync as mkdirSync9, readdirSync as readdirSync4, readFileSync as readFileSync11, rmdirSync as rmdirSync2, rmSync, statSync as statSync10 } from "node:fs";
 import { join as join22 } from "node:path";
 var sequence = 0;
 var same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
@@ -16675,7 +16832,7 @@ function hasRecentPending(stateFilePath) {
   const directory = pendingDirectory(stateFilePath);
   return names2(directory).some((name) => {
     try {
-      return name.endsWith(PENDING_STATE_FILE_SUFFIX) && Date.now() - statSync9(join22(directory, name)).mtimeMs < STATE_LOCK_BUSY_MEMORY_MS;
+      return name.endsWith(PENDING_STATE_FILE_SUFFIX) && Date.now() - statSync10(join22(directory, name)).mtimeMs < STATE_LOCK_BUSY_MEMORY_MS;
     } catch {
       return false;
     }
@@ -16690,7 +16847,7 @@ function removePending(stateFilePath, files) {
       continue;
     const file = join22(directory, name);
     try {
-      if (Date.now() - statSync9(file).mtimeMs > PENDING_STATE_ABANDONED_MS)
+      if (Date.now() - statSync10(file).mtimeMs > PENDING_STATE_ABANDONED_MS)
         rmSync(file, { force: true });
     } catch {
       continue;
@@ -16785,6 +16942,31 @@ function updateSessionState(state, sessionId, lastLine, turnCount, taskRunMap, c
       current_turn_run_id: currentTurnRunId !== void 0 ? currentTurnRunId : existingSession.current_turn_run_id
     }
   };
+}
+
+// dist/src/metadata.js
+function runTypeOf(options) {
+  if (options.toolName)
+    return "tool";
+  if (options.agentType === "subagent" || options.agentType === "compaction")
+    return "subagent";
+  return options.modelName === void 0 ? "root" : "llm";
+}
+function codingAgentMetadata(options) {
+  const { sessionId, ...rest } = options;
+  return buildCodingAgentMetadata({
+    ...rest,
+    runType: runTypeOf(options),
+    integration: LS_INTEGRATION,
+    integrationVersion: LS_INTEGRATION_VERSION,
+    threadId: sessionId
+  });
+}
+function skillNameFromTool(toolName, toolInput) {
+  if (toolName !== "Skill")
+    return void 0;
+  const skill = toolInput?.skill;
+  return typeof skill === "string" ? skill : void 0;
 }
 
 // dist/src/langsmith.js
@@ -17489,13 +17671,13 @@ function isPayloadForHook(input, event2) {
 
 // dist/src/utils/stdin.js
 function readStdin() {
-  return new Promise((resolve14, reject) => {
+  return new Promise((resolve15, reject) => {
     let data = "";
     process.stdin.setEncoding("utf-8");
     process.stdin.on("data", (chunk) => data += chunk);
     process.stdin.on("end", () => {
       try {
-        resolve14(JSON.parse(data));
+        resolve15(JSON.parse(data));
       } catch (err) {
         reject(new Error(`Failed to parse hook input: ${err}`));
       }

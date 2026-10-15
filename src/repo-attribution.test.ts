@@ -4,7 +4,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vites
 
 vi.mock("node:child_process", { spy: true });
 
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { createGitSandbox } from "./fixtures/git-sandbox.js";
 import { loadConfig } from "./config.js";
 import {
@@ -31,7 +31,8 @@ writeFileSync(join(submodule, ".git"), `gitdir: ${join(alpha, ".git", "modules",
 
 const alphaSeed = join(alpha, "seed.txt");
 const betaSeed = join(beta, "seed.txt");
-const gitCommands = () => vi.mocked(execSync).mock.calls.map(([command]) => String(command));
+const gitCommands = () =>
+  vi.mocked(execFileSync).mock.calls.map(([file, args]) => [file, ...(args ?? [])].join(" "));
 
 // What loadConfig stamps for a session started outside every repository here.
 const session = {

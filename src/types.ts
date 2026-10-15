@@ -5,13 +5,15 @@
 import type { RunTree, RunTreeConfig } from "langsmith";
 import type { StringNodeRule } from "langsmith/anonymizer";
 import type {
+  CodingAgentAgentType,
+  CodingAgentMetadataOptions,
+} from "@langchain/plugins-base/metadata";
+import type {
   BOOLEAN_SETTINGS,
   HOOK_EVENT_NAMES,
-  GIT_MARKERS,
   PINNED_REPOSITORY_KEYS,
   TURN_RECORD_LINE,
 } from "./constants.js";
-import type { LSAgentType } from "./metadata.js";
 
 export type TracingMode = "full" | "metadata";
 
@@ -204,7 +206,10 @@ export interface ToolOrigin extends ToolPathLookup {
   cwd?: string;
 }
 
-export type GitMarker = (typeof GIT_MARKERS)[keyof typeof GIT_MARKERS];
+export type ClaudeMetadataOptions = Omit<
+  CodingAgentMetadataOptions,
+  "integration" | "integrationVersion" | "threadId" | "runType"
+> & { sessionId: string };
 
 export interface MetadataWithPins {
   [PINNED_REPOSITORY_KEYS]?: ReadonlySet<string>;
@@ -354,10 +359,6 @@ export interface TracingState {
 
 // ─── Standalone Binary ──────────────────────────────────────────────────────
 
-export interface GhLoginMarker {
-  failed: string;
-}
-
 // ─── Test Fixtures ──────────────────────────────────────────────────────────
 
 export type FakeRunVerdict = { status: number; body?: string } | "ignore" | undefined;
@@ -442,7 +443,7 @@ export interface Config {
   /** Existing run to nest every trace under. */
   parentDottedOrder?: string;
   replicas?: RunTreeConfig["replicas"];
-  /** Added to every run, including CC_LANGSMITH_METADATA. */
+  /** Added to every run, including repo info and CC_LANGSMITH_METADATA. */
   customMetadata?: Record<string, unknown>;
   redact: boolean;
   /** From CC_LANGSMITH_REDACT_EXTRA or the config file. */
@@ -470,7 +471,7 @@ export interface TraceTurnOptions {
   runtimeVersion?: string;
   /** Sent as `approval_policy` on the turn run only. */
   approvalPolicy?: string;
-  agentType?: LSAgentType;
+  agentType?: CodingAgentAgentType;
   record?: TurnRecordTarget;
   hookCwd?: string;
 }

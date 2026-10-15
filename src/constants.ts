@@ -2,6 +2,19 @@ import { COMMON_BOOLEAN_SETTINGS } from "@langchain/plugins-base/settings";
 
 const USER_PROMPT_TURN_NAME = "Claude Code Turn";
 const ASSISTANT_RUN_NAME = "Claude";
+const LS_INTEGRATION = "claude-code";
+const METADATA_MODE_RUN_FIELDS = [
+  "client",
+  "id",
+  "name",
+  "run_type",
+  "project_name",
+  "start_time",
+  "end_time",
+  "parent_run_id",
+  "trace_id",
+  "dotted_order",
+] as const;
 
 /** `hooks/hooks.json` is tested against this list. */
 const HOOK_EVENT_NAMES = [
@@ -19,27 +32,7 @@ const HOOK_EVENT_NAMES = [
 /** Only Cursor sends this, so it marks a Cursor payload. */
 const CURSOR_VERSION_FIELD = "cursor_version";
 
-/** Cleared before running git so it looks at the session's own folder. */
-const GIT_LOCATION_ENV_KEYS = [
-  "GIT_DIR",
-  "GIT_WORK_TREE",
-  "GIT_COMMON_DIR",
-  "GIT_INDEX_FILE",
-  "GIT_CEILING_DIRECTORIES",
-];
-
-/** Kept exact since a broken submodule prints a similar error inside a real repo. */
-const NOT_A_REPOSITORY = /not a git repository \(or any of the parent directories\)/i;
-
 const TOOL_PATH_INPUT_KEYS = ["file_path", "notebook_path", "path", "cwd"] as const;
-
-const GIT_DIRECTORY_NAME = ".git";
-
-const GIT_MARKERS = {
-  REPOSITORY_ROOT: "repository root",
-  ONLY_GIT_CAN_SAY: "only git can say",
-  NOTHING_HERE: "nothing here",
-} as const;
 
 const TURN_REPOSITORY_KEYS = [
   "repository_name",
@@ -108,21 +101,10 @@ const EMPTY_QUEUE_MIN_IDLE_MS = 2 * 60 * 60 * 1000;
 
 const FLUSH_QUEUE_ARG = "--flush-queue";
 
-const GH_LOGIN_COMMAND = "gh";
-
-const GH_LOGIN_ARGUMENTS = ["api", "user", "--jq", ".login"];
-
-const GH_LOGIN_TIMEOUT_MS = 5000;
-
-const GH_LOGIN_PATTERN = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
-
-const JQ_NULL_OUTPUT = "null";
-
 const STATE_FILE_DEFAULT = [".claude", "state", "langsmith_state.json"];
 
 const GH_LOGIN_MARKER_FILE = "langsmith_gh_login.json";
 
-const GH_LOGIN_RETRY_AFTER_MS = 24 * 60 * 60 * 1000;
 const TURN_RECORD_DIR_NAME = "langsmith_turns";
 const TURN_RECORD_SUFFIX = ".turn.jsonl";
 
@@ -172,13 +154,11 @@ export {
   KILLED_NOTIFICATION_STATUS,
   USER_PROMPT_TURN_NAME,
   ASSISTANT_RUN_NAME,
+  LS_INTEGRATION,
+  METADATA_MODE_RUN_FIELDS,
   HOOK_EVENT_NAMES,
   CURSOR_VERSION_FIELD,
-  GIT_LOCATION_ENV_KEYS,
-  NOT_A_REPOSITORY,
   TOOL_PATH_INPUT_KEYS,
-  GIT_DIRECTORY_NAME,
-  GIT_MARKERS,
   REPOSITORY_METADATA_KEYS,
   REPOSITORY_NAME_KEY,
   ATTRIBUTION_IDENTIFIER_KEY,
@@ -190,14 +170,8 @@ export {
   RECORDED_RUN_FALLBACK_TYPE,
   PINNED_REPOSITORY_KEYS,
   NO_PINNED_KEYS,
-  GH_LOGIN_COMMAND,
-  GH_LOGIN_ARGUMENTS,
-  GH_LOGIN_TIMEOUT_MS,
-  GH_LOGIN_PATTERN,
-  JQ_NULL_OUTPUT,
   STATE_FILE_DEFAULT,
   GH_LOGIN_MARKER_FILE,
-  GH_LOGIN_RETRY_AFTER_MS,
   QUEUE_DIR_NAME,
   QUEUE_FILE_SUFFIX,
   QUEUE_SESSION_UNSAFE_CHARS,
