@@ -1,5 +1,9 @@
 import { readFileSync } from "node:fs";
-import { mergeCommonConfig, readCommonConfigFile, toSdkReplicas } from "./shared-config.js";
+import {
+  mergeCommonConfig,
+  readCommonConfigFiles,
+  toSdkReplicas,
+} from "@langchain/plugins-base/settings";
 import { homedir, userInfo } from "node:os";
 import { join, resolve } from "node:path";
 import type { RunTreeConfig } from "langsmith";
@@ -299,16 +303,13 @@ export function loadConfig(options?: { cwd?: string; deferGit?: boolean }): Conf
     }
   }
 
+  const files = readCommonConfigFiles({ cwd, home: homeDir, harnessDirectory: ".claude" });
   const common = mergeCommonConfig(
     {
-      harness: readCommonConfigFile(join(cwd, ".claude", "langsmith.json")).common,
-      root: readCommonConfigFile(join(cwd, "langsmith-plugins.json")).common,
-      user: homeDir
-        ? readCommonConfigFile(join(homeDir, ".claude", "langsmith.json")).common
-        : undefined,
-      userRoot: homeDir
-        ? readCommonConfigFile(join(homeDir, ".langsmith-plugins.json")).common
-        : undefined,
+      harness: files.harness.common,
+      root: files.root.common,
+      user: files.user.common,
+      userRoot: files.userRoot.common,
       env: {
         enabled: envBoolean("enabled"),
         defaultMuted: envBoolean("defaultMuted"),
