@@ -23,6 +23,33 @@ beforeEach(async () => {
   }
 });
 
+describe("read-only config opens", () => {
+  it("never creates a missing config or changes existing permissions", () => {
+    const dir = fs.mkdtempSync(join(tmpdir(), "readonly-config-"));
+    const path = join(dir, "config.json");
+    try {
+      expect(readCommonConfigFile(path).status).toBe("absent");
+      expect(fs.existsSync(path)).toBe(false);
+      fs.writeFileSync(path, "{}", { mode: 0o600 });
+      const mode = fs.statSync(path).mode;
+      expect(readCommonConfigFile(path).status).toBe("valid");
+      expect(fs.statSync(path).mode).toBe(mode);
+      expect(fs.readFileSync(path, "utf8")).toBe("{}");
+      const flags = vi.mocked(fs.openSync).mock.calls.at(-1)?.[1];
+      expect(flags).toBe(fs.constants.O_RDONLY | fs.constants.O_NONBLOCK);
+      expect(
+        Number(flags) &
+          (fs.constants.O_CREAT |
+            fs.constants.O_TRUNC |
+            fs.constants.O_WRONLY |
+            fs.constants.O_RDWR),
+      ).toBe(0);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("canonical common schema fixtures", () => {
   it.each([null, [], true, false, 1, "", "{}"])("rejects nonobjects: %j", (value) => {
     expect(parseCommonConfig(value)).toMatchObject({ status: "invalid", common: restrictive });

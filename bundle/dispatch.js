@@ -15105,33 +15105,36 @@ function resolveTurnTracingMode(config, sessionId, ...snapshots) {
 }
 
 // dist/src/transcript.js
-import { readFileSync as readFileSync10, statSync as statSync6, fstatSync as fstatSync2, openSync as openSync4, readSync, closeSync as closeSync4 } from "node:fs";
+import { readFileSync as readFileSync10, constants as constants2, fstatSync as fstatSync2, openSync as openSync4, readSync, closeSync as closeSync4 } from "node:fs";
 var MAX_FULL_READ_BYTES = 50 * 1024 * 1024;
 function readTranscript(filePath, afterLine = -1) {
-  let size;
+  let fd;
   try {
-    size = statSync6(filePath).size;
+    fd = openSync4(filePath, constants2.O_RDONLY | constants2.O_NONBLOCK);
   } catch {
     return { messages: [], lastLine: afterLine };
   }
-  if (size <= MAX_FULL_READ_BYTES) {
-    const raw = readFileSync10(filePath, "utf-8");
-    const lines = raw.split("\n").filter((l) => l.trim() !== "");
-    const messages = [];
-    let lastLine = afterLine;
-    for (let i = 0; i < lines.length; i++) {
-      lastLine = i;
-      if (i <= afterLine)
-        continue;
-      try {
-        messages.push(JSON.parse(lines[i]));
-      } catch {
-      }
-    }
-    return { messages, lastLine };
-  }
-  const fd = openSync4(filePath, "r");
   try {
+    const stat3 = fstatSync2(fd);
+    if (!stat3.isFile())
+      return { messages: [], lastLine: afterLine };
+    const size = stat3.size;
+    if (size <= MAX_FULL_READ_BYTES) {
+      const raw = readFileSync10(fd, "utf-8");
+      const lines = raw.split("\n").filter((l) => l.trim() !== "");
+      const messages2 = [];
+      let lastLine2 = afterLine;
+      for (let i = 0; i < lines.length; i++) {
+        lastLine2 = i;
+        if (i <= afterLine)
+          continue;
+        try {
+          messages2.push(JSON.parse(lines[i]));
+        } catch {
+        }
+      }
+      return { messages: messages2, lastLine: lastLine2 };
+    }
     const chunkSize = 2 * 1024 * 1024;
     const buf = Buffer.alloc(chunkSize);
     const messages = [];
@@ -15176,42 +15179,45 @@ function readTranscript(filePath, afterLine = -1) {
   }
 }
 function getTranscriptEndLine(filePath) {
+  let fd;
   try {
-    const size = statSync6(filePath).size;
+    fd = openSync4(filePath, constants2.O_RDONLY | constants2.O_NONBLOCK);
+    const stat3 = fstatSync2(fd);
+    if (!stat3.isFile())
+      return -1;
+    const size = stat3.size;
     if (size === 0)
       return -1;
     if (size <= MAX_FULL_READ_BYTES) {
-      const raw = readFileSync10(filePath, "utf-8");
+      const raw = readFileSync10(fd, "utf-8");
       const lines = raw.split("\n").filter((l) => l.trim() !== "");
       return lines.length > 0 ? lines.length - 1 : -1;
     }
-    const fd = openSync4(filePath, "r");
-    try {
-      const chunkSize = 1024 * 1024;
-      const buf = Buffer.alloc(chunkSize);
-      let lineCount = 0;
-      let bytesRead;
-      let pos = 0;
-      let partial = "";
-      while ((bytesRead = readSync(fd, buf, 0, chunkSize, pos)) > 0) {
-        const chunk = partial + buf.toString("utf-8", 0, bytesRead);
-        partial = "";
-        const lines = chunk.split("\n");
-        partial = lines.pop() ?? "";
-        for (const line of lines) {
-          if (line.trim() !== "")
-            lineCount++;
-        }
-        pos += bytesRead;
+    const chunkSize = 1024 * 1024;
+    const buf = Buffer.alloc(chunkSize);
+    let lineCount = 0;
+    let bytesRead;
+    let pos = 0;
+    let partial = "";
+    while ((bytesRead = readSync(fd, buf, 0, chunkSize, pos)) > 0) {
+      const chunk = partial + buf.toString("utf-8", 0, bytesRead);
+      partial = "";
+      const lines = chunk.split("\n");
+      partial = lines.pop() ?? "";
+      for (const line of lines) {
+        if (line.trim() !== "")
+          lineCount++;
       }
-      if (partial.trim() !== "")
-        lineCount++;
-      return lineCount > 0 ? lineCount - 1 : -1;
-    } finally {
-      closeSync4(fd);
+      pos += bytesRead;
     }
+    if (partial.trim() !== "")
+      lineCount++;
+    return lineCount > 0 ? lineCount - 1 : -1;
   } catch {
     return -1;
+  } finally {
+    if (fd !== void 0)
+      closeSync4(fd);
   }
 }
 function readRuntimeVersion(filePath) {
