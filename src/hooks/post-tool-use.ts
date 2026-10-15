@@ -27,20 +27,7 @@ import { detectWorkflowLaunch } from "../workflows.js";
 import { enqueueRun, queueOrigin } from "../queue.js";
 import { recordRun, turnRecordPath } from "../turn-record.js";
 import { startQueueFlusher } from "../utils/detach.js";
-
-interface PostToolUseHookInput {
-  session_id: string;
-  transcript_path: string;
-  cwd: string;
-  permission_mode?: string;
-  hook_event_name: "PostToolUse";
-  tool_name: string;
-  tool_input: Record<string, unknown>;
-  tool_response: Record<string, unknown>;
-  tool_use_id: string;
-  agent_id?: string;
-  agent_type?: string;
-}
+import type { PostToolUseHookInput } from "../types.js";
 
 export async function main(): Promise<void> {
   const input: PostToolUseHookInput = await readStdin();

@@ -1,4 +1,5 @@
-import type { FLUSH_QUEUE_ARG, HookEventName } from "../constants.js";
+import type { FLUSH_QUEUE_ARG } from "../constants.js";
+import type { HookEventName } from "../types.js";
 import { error } from "../logger.js";
 
 /** A hook must never affect Claude Code, so a rejected handler is logged and still exits 0. */

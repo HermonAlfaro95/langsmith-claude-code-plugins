@@ -818,48 +818,6 @@ import { join as join2, resolve } from "node:path";
 // dist/src/logger.js
 import { appendFileSync, mkdirSync, statSync as statSync2, renameSync } from "node:fs";
 import { dirname } from "node:path";
-var MAX_LOG_BYTES = 5 * 1024 * 1024;
-var LOG_FILE = process.env.CC_LANGSMITH_LOG_FILE ?? `${process.env.HOME ?? ""}/.claude/state/hook.log`;
-var debugEnabled = false;
-function initLogger(debug2) {
-  debugEnabled = debug2;
-  mkdirSync(dirname(LOG_FILE), { recursive: true });
-}
-function rotateIfNeeded() {
-  try {
-    if (statSync2(LOG_FILE).size >= MAX_LOG_BYTES) {
-      renameSync(LOG_FILE, `${LOG_FILE}.1`);
-    }
-  } catch {
-  }
-}
-function write(level, message) {
-  const timestamp = (/* @__PURE__ */ new Date()).toISOString().replace("T", " ").replace("Z", "");
-  const line = `${timestamp} [${level}] ${message}
-`;
-  try {
-    rotateIfNeeded();
-    appendFileSync(LOG_FILE, line);
-  } catch {
-  }
-}
-function log(message) {
-  write("INFO", message);
-}
-function warn(message) {
-  write("WARN", message);
-}
-function error(message) {
-  write("ERROR", message);
-}
-function debug(message) {
-  if (debugEnabled) {
-    write("DEBUG", message);
-  }
-}
-
-// dist/src/config.js
-import { execSync } from "node:child_process";
 
 // dist/src/constants.js
 var USER_PROMPT_TURN_NAME = "Claude Code Turn";
@@ -938,6 +896,59 @@ var TURN_RECORD_LINE = {
   delivered: "ok",
   reconciled: "fixed"
 };
+var BOOLEAN_SETTINGS = {
+  enabled: { env: "TRACE_TO_LANGSMITH", ...COMMON_BOOLEAN_SETTINGS.enabled },
+  defaultMuted: { env: "CC_LANGSMITH_DEFAULT_MUTED", ...COMMON_BOOLEAN_SETTINGS.defaultMuted }
+};
+var MAX_LOG_BYTES = 5 * 1024 * 1024;
+var LOOKUP_TIMEOUT_MS = 4e3;
+var MAX_FULL_READ_BYTES = 50 * 1024 * 1024;
+var WORKFLOW_TOOL_NAME = "Workflow";
+var WORKFLOW_SUBAGENT_TYPE = "workflow-subagent";
+var KILLED_NOTIFICATION_STATUS = "killed";
+
+// dist/src/logger.js
+var LOG_FILE = process.env.CC_LANGSMITH_LOG_FILE ?? `${process.env.HOME ?? ""}/.claude/state/hook.log`;
+var debugEnabled = false;
+function initLogger(debug2) {
+  debugEnabled = debug2;
+  mkdirSync(dirname(LOG_FILE), { recursive: true });
+}
+function rotateIfNeeded() {
+  try {
+    if (statSync2(LOG_FILE).size >= MAX_LOG_BYTES) {
+      renameSync(LOG_FILE, `${LOG_FILE}.1`);
+    }
+  } catch {
+  }
+}
+function write(level, message) {
+  const timestamp = (/* @__PURE__ */ new Date()).toISOString().replace("T", " ").replace("Z", "");
+  const line = `${timestamp} [${level}] ${message}
+`;
+  try {
+    rotateIfNeeded();
+    appendFileSync(LOG_FILE, line);
+  } catch {
+  }
+}
+function log(message) {
+  write("INFO", message);
+}
+function warn(message) {
+  write("WARN", message);
+}
+function error(message) {
+  write("ERROR", message);
+}
+function debug(message) {
+  if (debugEnabled) {
+    write("DEBUG", message);
+  }
+}
+
+// dist/src/config.js
+import { execSync } from "node:child_process";
 
 // dist/src/utils/gh-login.js
 import { execFileSync } from "node:child_process";
@@ -1127,10 +1138,6 @@ function getGitInfo(cwd) {
   }
   return result;
 }
-var BOOLEAN_SETTINGS = {
-  enabled: { env: "TRACE_TO_LANGSMITH", ...COMMON_BOOLEAN_SETTINGS.enabled },
-  defaultMuted: { env: "CC_LANGSMITH_DEFAULT_MUTED", ...COMMON_BOOLEAN_SETTINGS.defaultMuted }
-};
 function envBoolean(field) {
   const setting = BOOLEAN_SETTINGS[field];
   const env = process.env[setting.env]?.toLowerCase();
@@ -15102,7 +15109,6 @@ function resolveTurnTracingMode(config, sessionId, ...snapshots) {
 
 // dist/src/transcript.js
 import { readFileSync as readFileSync10, statSync as statSync7, fstatSync, openSync as openSync3, readSync, closeSync as closeSync3 } from "node:fs";
-var MAX_FULL_READ_BYTES = 50 * 1024 * 1024;
 function readTranscript(filePath, afterLine = -1) {
   let size;
   try {
@@ -16295,8 +16301,6 @@ function recordBackgroundRun(session, turn, backgroundId, entry) {
 }
 
 // dist/src/workflows.js
-var WORKFLOW_TOOL_NAME = "Workflow";
-var WORKFLOW_SUBAGENT_TYPE = "workflow-subagent";
 function detectWorkflowLaunch(toolName, toolResponse) {
   if (toolName !== WORKFLOW_TOOL_NAME)
     return void 0;
@@ -17365,7 +17369,6 @@ async function main9() {
 }
 
 // dist/src/thread-link.js
-var LOOKUP_TIMEOUT_MS = 4e3;
 function terminalLink(url) {
   const OSC8 = "\x1B]8;;";
   const BEL = "\x07";
@@ -17418,7 +17421,6 @@ async function describeThreadLinks(config, sessionId) {
 }
 
 // dist/src/hooks/user-prompt-submit.js
-var KILLED_NOTIFICATION_STATUS = "killed";
 async function main10() {
   const hookStartTime = Date.now();
   const input = await readStdin();

@@ -1,10 +1,5 @@
 import { readFileSync } from "node:fs";
-import {
-  COMMON_BOOLEAN_SETTINGS,
-  mergeCommonConfig,
-  readCommonConfigFile,
-  toSdkReplicas,
-} from "./shared-config.js";
+import { mergeCommonConfig, readCommonConfigFile, toSdkReplicas } from "./shared-config.js";
 import { homedir, userInfo } from "node:os";
 import { join, resolve } from "node:path";
 import type { RunTreeConfig } from "langsmith";
@@ -12,6 +7,7 @@ import type { StringNodeRule } from "langsmith/anonymizer";
 import { debug, error } from "./logger.js";
 import { execSync } from "node:child_process";
 import {
+  BOOLEAN_SETTINGS,
   GIT_LOCATION_ENV_KEYS,
   NO_PINNED_KEYS,
   NOT_A_REPOSITORY,
@@ -19,7 +15,7 @@ import {
   REPOSITORY_METADATA_KEYS,
   STATE_FILE_DEFAULT,
 } from "./constants.js";
-import type { MetadataWithPins } from "./types.js";
+import type { MetadataWithPins, BooleanSetting, Config } from "./types.js";
 import { githubLogin } from "./utils/gh-login.js";
 
 /**
@@ -73,27 +69,6 @@ export function readAnthropicUserId(): string | undefined {
 /** Read the local OS username via `os.userInfo()`. */
 export function readLocalUsername(): string {
   return userInfo().username;
-}
-
-export interface Config {
-  /** Master tracing switch, resolved from environment, project config, then user config. */
-  enabled: boolean;
-  /** Default for threads without an explicit preference; independent of the master switch. */
-  defaultMuted: boolean;
-  apiKey: string;
-  project: string;
-  apiBaseUrl: string;
-  stateFilePath: string;
-  debug: boolean;
-  /** Dotted-order string of an existing LangSmith run to nest all traces under. */
-  parentDottedOrder?: string;
-  replicas?: RunTreeConfig["replicas"];
-  /** Base metadata (static contract keys + user CC_LANGSMITH_METADATA) for every run. */
-  customMetadata?: Record<string, unknown>;
-  /** Whether to redact detected secrets from traced data before upload. */
-  redact: boolean;
-  /** Extra user-supplied rules from CC_LANGSMITH_REDACT_EXTRA or common file config. */
-  redactExtraRules?: StringNodeRule[];
 }
 
 /**
@@ -228,12 +203,6 @@ export function getGitInfo(cwd: string): { branch?: string; commit?: string } {
   }
   return result;
 }
-
-const BOOLEAN_SETTINGS = {
-  enabled: { env: "TRACE_TO_LANGSMITH", ...COMMON_BOOLEAN_SETTINGS.enabled },
-  defaultMuted: { env: "CC_LANGSMITH_DEFAULT_MUTED", ...COMMON_BOOLEAN_SETTINGS.defaultMuted },
-} as const;
-type BooleanSetting = keyof typeof BOOLEAN_SETTINGS;
 
 /** Preserve Claude environment boolean parsing; the shared helper receives parsed values. */
 function envBoolean(field: BooleanSetting): boolean | undefined {

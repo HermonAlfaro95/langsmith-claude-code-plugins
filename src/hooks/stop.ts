@@ -40,8 +40,7 @@ import { queueOrigin } from "../queue.js";
 import { everyChildLanded, settledFromTurn, settledTurnMetadata } from "../reconcile.js";
 import { finalizeNotificationChain } from "../finalize.js";
 import { MUTED_TRACE_CONTENT } from "../privacy.js";
-import type { TaskRunEntry } from "../langsmith.js";
-import type { StopHookInput } from "../types.js";
+import type { StopHookInput, TaskRunEntry } from "../types.js";
 
 export async function main(): Promise<void> {
   const startTime = Date.now();

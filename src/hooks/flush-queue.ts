@@ -39,8 +39,7 @@ import { discardDirIfEmpty, safeName } from "../utils/session-store.js";
 import { watchUploads, type UploadWatch } from "../upload-confirm.js";
 import { releaseLock, tryAcquireLock } from "../utils/file-lock.js";
 import { createRunTree } from "../privacy.js";
-import type { Config } from "../config.js";
-import type { QueuedRun } from "../types.js";
+import type { QueuedRun, Config } from "../types.js";
 
 function flusherClient(config: Config): Client {
   const anonymizer = config.redact

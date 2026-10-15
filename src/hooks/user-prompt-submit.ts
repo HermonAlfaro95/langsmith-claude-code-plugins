@@ -33,7 +33,7 @@ import { readStdin } from "../utils/stdin.js";
 import { startQueueFlusher } from "../utils/detach.js";
 import { queueOrigin } from "../queue.js";
 import { recordRun, turnRecordPath } from "../turn-record.js";
-import { USER_PROMPT_TURN_NAME } from "../constants.js";
+import { KILLED_NOTIFICATION_STATUS, USER_PROMPT_TURN_NAME } from "../constants.js";
 import { codingAgentMetadata } from "../metadata.js";
 import { createRunTree } from "../privacy.js";
 import { loadConfig } from "../config.js";
@@ -43,27 +43,7 @@ import {
   setThreadTracingMode,
   getThreadTracingMode,
 } from "../tracing-policy.js";
-
-interface UserPromptSubmitHookInput {
-  session_id: string;
-  transcript_path: string;
-  cwd: string;
-  permission_mode?: string;
-  hook_event_name: "UserPromptSubmit";
-  prompt: string;
-  agent_id?: string;
-  agent_type?: string;
-}
-
-/**
- * The task-notification <status> that means the subagent was forcibly stopped
- * (so SubagentStop never fires and we must finalize from the notification turn,
- * marking the agent interrupted). We match only this known value: an unknown/new
- * status falls back to being treated as a normal completion — we'd rather show a
- * killed subagent as completed than mislabel a successful one as interrupted if
- * Claude Code changes its status vocabulary. Matched case-insensitively.
- */
-const KILLED_NOTIFICATION_STATUS = "killed";
+import type { UserPromptSubmitHookInput } from "../types.js";
 
 export async function main(): Promise<void> {
   const hookStartTime = Date.now();
