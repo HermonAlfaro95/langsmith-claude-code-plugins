@@ -27,7 +27,6 @@ vi.mock("./logger.js", () => ({
   debug: vi.fn(),
   error: vi.fn(),
   initLogger: vi.fn(),
-  WORKER_LOG_FILE: "worker.log",
 }));
 vi.mock("node:child_process", async (importOriginal) => ({
   ...(await importOriginal<typeof import("node:child_process")>()),

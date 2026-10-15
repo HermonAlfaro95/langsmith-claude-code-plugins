@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { EventEmitter } from "node:events";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
@@ -12,15 +12,11 @@ import { stableRunId } from "./utils/ids/run-id.js";
 
 const warn = vi.hoisted(() => vi.fn());
 const spawned = vi.hoisted(() => vi.fn());
-const workerLog = vi.hoisted(
-  () => `${process.env.TMPDIR ?? "/tmp"}/claude-engine-worker-${process.pid}.log`,
-);
 vi.mock("./logger.js", () => ({
   warn,
   debug: vi.fn(),
   error: vi.fn(),
   initLogger: vi.fn(),
-  WORKER_LOG_FILE: workerLog,
 }));
 vi.mock("node:child_process", async (importOriginal) => ({
   ...(await importOriginal<typeof import("node:child_process")>()),
@@ -118,8 +114,7 @@ describe("the shared engine adapter", () => {
 
     const [, , options] = spawned.mock.calls[0];
     expect(options.stdio[1]).toEqual(expect.any(Number));
-    expect(existsSync(workerLog)).toBe(true);
-    rmSync(workerLog);
+    expect(existsSync(join(root, "langsmith_engine", "worker.log"))).toBe(true);
   });
 
   it("saves a muted run without its content", async () => {
