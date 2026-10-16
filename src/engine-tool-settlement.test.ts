@@ -103,7 +103,7 @@ describe("settleToolRuns", () => {
     }) as never;
 
   it("posts each tool run with the repository settled from where it worked", async () => {
-    settled.mockReturnValue({ cwd: "/work", repository_name: "acme/x" });
+    settled.mockReturnValue({ cwd: "/work", ls_git_repo: "acme/x" });
 
     const result = await settleToolRuns(job({ toolOrigin: origin }));
 
@@ -114,7 +114,7 @@ describe("settleToolRuns", () => {
         {
           eventId: "post:tool-1",
           sourceRef: "tool-1",
-          submission: { metadata: { base: { cwd: "/work", repository_name: "acme/x" } } },
+          submission: { metadata: { base: { cwd: "/work", ls_git_repo: "acme/x" } } },
         },
       ],
     });

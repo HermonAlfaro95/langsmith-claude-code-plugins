@@ -22,12 +22,12 @@ const run = (overrides: Partial<ClaudeRun> = {}): ClaudeRun => ({
 
 describe("attributionReady", () => {
   it("is true only once both the repository and the author are known", () => {
-    const base = { repository_name: "acme/x", ls_attribution_identifier: "dev" };
+    const base = { ls_git_repo: "acme/x", ls_attribution_identifier: "dev" };
     const ready = (extra: Record<string, unknown>) =>
       attributionReady(codingAgentMetadata({ sessionId: "s1", agentType: "root", base: extra }));
 
     expect(ready(base)).toBe(true);
-    expect(ready({ repository_name: "acme/x" })).toBe(false);
+    expect(ready({ ls_git_repo: "acme/x" })).toBe(false);
     expect(ready({ ls_attribution_identifier: "dev" })).toBe(false);
   });
 });

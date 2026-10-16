@@ -185,15 +185,6 @@ export interface Turn {
 
 // ─── Repository Attribution ────────────────────────────────────────────────
 
-export interface RepositoryAttribution {
-  repository_name?: string;
-  repository_provider?: string;
-  repository_url?: string;
-  git_branch?: string;
-  git_commit_sha?: string;
-  ls_attribution_identifier?: string;
-}
-
 export interface ToolPathLookup {
   path?: string;
   namedAPath: boolean;
