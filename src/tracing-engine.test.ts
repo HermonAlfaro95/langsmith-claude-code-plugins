@@ -254,7 +254,7 @@ describe("a turn's settlement", () => {
         store: {
           enumerateTurn: async () => [
             stored(turn, `post:${turn}`, {}),
-            stored("llm", "post:llm", { repository_name: "acme/child" }),
+            stored("llm", "post:llm", { ls_git_repo: "acme/child" }),
             stored("tool", "tool:tool", {}),
           ],
           readOutcome: async () => ({ status: "pending" }),
@@ -277,7 +277,7 @@ describe("a turn's settlement", () => {
     initTracing(config, root, "s1");
 
     await captureRun(run(turn));
-    await captureRun(child("llm", { repository_name: "acme/child" }), "full", turn);
+    await captureRun(child("llm", { ls_git_repo: "acme/child" }), "full", turn);
     const fill = await turnFiller(turn);
     const own = codingAgentMetadata({
       sessionId: "s1",
@@ -287,6 +287,7 @@ describe("a turn's settlement", () => {
 
     expect(fill(own).base).toEqual({
       ls_attribution_identifier: "me",
+      ls_git_repo: "acme/child",
       repository_name: "acme/child",
     });
   });

@@ -27,7 +27,7 @@
     "langsmith": "^0.10.5"
   },
   "devDependencies": {
-    "@langchain/plugins-base": "0.4.2",
+    "@langchain/plugins-base": "0.4.3",
     "@types/node": "^26.6.5",
     "esbuild": "^0.28.1",
     "oxfmt": "^0.72.0",

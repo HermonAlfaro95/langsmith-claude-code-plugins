@@ -5,17 +5,19 @@ import { dirname, isAbsolute, join } from "node:path";
 import {
   createGitHubLoginFallback,
   getGitUserName,
-  getGitInfo,
-  getRepoName,
   getRepoRoot,
-  getRepoUrl,
+  getRepositoryMetadata,
   nearestExistingDirectory,
   rootFromGitMarker,
 } from "@langchain/plugins-base/git";
 import { pinnedRepositoryKeys, resolveStateFilePath } from "./config.js";
-import { GH_LOGIN_MARKER_FILE, REPOSITORY_METADATA_KEYS } from "./constants.js";
+import {
+  REPOSITORY_METADATA_KEYS,
+  type RepositoryAttribution,
+} from "@langchain/plugins-base/metadata";
+import { GH_LOGIN_MARKER_FILE } from "./constants.js";
 import { toolPathFromInput } from "./repo-attribution-paths.js";
-import type { RepositoryAttribution, ToolOrigin, ToolPathLookup } from "./types.js";
+import type { ToolOrigin, ToolPathLookup } from "./types.js";
 
 const rootByDirectory = new Map<string, string | null | undefined>();
 const attributionByRoot = new Map<string, RepositoryAttribution>();
@@ -76,17 +78,10 @@ function identifierForRoot(root: string): RepositoryAttribution {
 function attributionForRoot(root: string): RepositoryAttribution {
   const cached = attributionByRoot.get(root);
   if (cached) return cached;
-  const attribution: RepositoryAttribution = { ...identifierForRoot(root) };
-  const repoName = getRepoName(root);
-  if (repoName) {
-    attribution.repository_name = repoName.name;
-    attribution.repository_provider = repoName.provider;
-    const url = getRepoUrl(repoName.provider, repoName.name);
-    if (url) attribution.repository_url = url;
-  }
-  const gitInfo = getGitInfo(root);
-  if (gitInfo.branch) attribution.git_branch = gitInfo.branch;
-  if (gitInfo.commit) attribution.git_commit_sha = gitInfo.commit;
+  const attribution: RepositoryAttribution = {
+    ...identifierForRoot(root),
+    ...getRepositoryMetadata(root),
+  };
   attributionByRoot.set(root, attribution);
   return attribution;
 }

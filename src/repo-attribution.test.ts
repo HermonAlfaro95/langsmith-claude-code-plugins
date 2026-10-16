@@ -37,18 +37,23 @@ const gitCommands = () =>
 // What loadConfig stamps for a session started outside every repository here.
 const session = {
   cwd: "/somewhere/central",
-  repository_name: "acme/session",
-  repository_provider: "github",
-  repository_url: "https://github.com/acme/session",
-  git_branch: "session-branch",
-  git_commit_sha: "0".repeat(40),
+  ls_git_repo: "acme/session",
+  ls_repo_provider: "github",
+  ls_git_repo_url: "https://github.com/acme/session",
+  ls_git_branch: "session-branch",
+  ls_git_commit_hash: "0".repeat(40),
   ls_integration: "claude-code",
 };
 const noRepository = { cwd: session.cwd, ls_integration: session.ls_integration };
-const inAlpha = { repository_name: "acme/alpha", ls_attribution_identifier: "Alpha Owner" };
-const inBeta = { repository_name: "acme/beta" };
+const inAlpha = { ls_git_repo: "acme/alpha", ls_attribution_identifier: "Alpha Owner" };
+const inBeta = { ls_git_repo: "acme/beta" };
 const everythingBetaReveals = {
   ...inBeta,
+  ls_repo_provider: "gitlab",
+  ls_git_repo_url: "https://gitlab.com/acme/beta",
+  ls_git_branch: "trunk-beta",
+  ls_git_commit_hash: git(beta, "rev-parse", "HEAD"),
+  repository_name: "acme/beta",
   repository_provider: "gitlab",
   repository_url: "https://gitlab.com/acme/beta",
   git_branch: "trunk-beta",
@@ -82,7 +87,7 @@ describe("repoScopedMetadata", () => {
     [
       "a linked worktree, on its own branch rather than the main checkout's",
       { file_path: join(worktree, "seed.txt") },
-      { repository_name: "acme/alpha", git_branch: "side-branch" },
+      { ls_git_repo: "acme/alpha", ls_git_branch: "side-branch" },
     ],
   ])("attributes %s", (_name, input, want, cwd) => {
     expect(repoScopedMetadata(session, input, cwd)).toMatchObject(want);
@@ -94,6 +99,8 @@ describe("repoScopedMetadata", () => {
       { file_path: join(remoteless, "seed.txt") },
       {
         ...noRepository,
+        ls_git_branch: "trunk-local",
+        ls_git_commit_hash: git(remoteless, "rev-parse", "HEAD"),
         git_branch: "trunk-local",
         git_commit_sha: git(remoteless, "rev-parse", "HEAD"),
         ls_attribution_identifier: "Local Owner",
@@ -142,7 +149,7 @@ describe("repoScopedMetadata", () => {
   });
 
   it("adds only the author for a tool inside the session's own repository", () => {
-    const base = { cwd: alpha, repository_name: "acme/alpha", git_branch: "trunk-alpha" };
+    const base = { cwd: alpha, ls_git_repo: "acme/alpha", ls_git_branch: "trunk-alpha" };
 
     expect(repoScopedMetadata(base, { file_path: alphaSeed }, alpha)).toEqual({
       ...base,
@@ -156,17 +163,17 @@ describe("repoScopedMetadata", () => {
     vi.stubEnv("USERPROFILE", root);
     vi.stubEnv("TRACE_TO_LANGSMITH", "true");
     vi.stubEnv("LANGSMITH_API_KEY", "lsv2_pt_fake_key_for_tests");
-    vi.stubEnv("CC_LANGSMITH_METADATA", '{"repository_name":"acme/pinned"}');
+    vi.stubEnv("CC_LANGSMITH_METADATA", '{"ls_git_repo":"acme/pinned"}');
     const pinned = loadConfig({ cwd: alpha }).customMetadata;
 
     for (const path of [alphaSeed, betaSeed, join(plain, "x.txt")]) {
       expect(repoScopedMetadata(pinned, { file_path: path }, alpha)).toMatchObject({
-        repository_name: "acme/pinned",
+        ls_git_repo: "acme/pinned",
       });
     }
     // Everything the person did not pin still follows the path.
     expect(repoScopedMetadata(pinned, { file_path: betaSeed }, alpha)).toMatchObject({
-      git_branch: "trunk-beta",
+      ls_git_branch: "trunk-beta",
       ls_attribution_identifier: "Beta Owner",
     });
   });
@@ -198,8 +205,8 @@ describe("turnScopedMetadata", () => {
   // A session sitting in a repository with no remote, so git resolves one it cannot name.
   const inRemoteless = {
     cwd: remoteless,
-    git_branch: "trunk-local",
-    git_commit_sha: git(remoteless, "rev-parse", "HEAD"),
+    ls_git_branch: "trunk-local",
+    ls_git_commit_hash: git(remoteless, "rev-parse", "HEAD"),
     ls_integration: session.ls_integration,
   };
 
@@ -229,7 +236,7 @@ describe("turnScopedMetadata", () => {
   });
 
   it("gives the turn the same author its tools get, inside the session's own repository", () => {
-    const base = { cwd: alpha, repository_name: "acme/alpha", git_branch: "trunk-alpha" };
+    const base = { cwd: alpha, ls_git_repo: "acme/alpha", ls_git_branch: "trunk-alpha" };
     const author = { ls_attribution_identifier: "Alpha Owner" };
 
     expect(turnScopedMetadata(base, [{ file_path: alphaSeed }], alpha)).toEqual({
@@ -240,7 +247,7 @@ describe("turnScopedMetadata", () => {
   });
 
   it("keeps an author the person configured rather than the one git reports", () => {
-    const base = { cwd: alpha, repository_name: "acme/alpha", ls_attribution_identifier: "Chosen" };
+    const base = { cwd: alpha, ls_git_repo: "acme/alpha", ls_attribution_identifier: "Chosen" };
 
     expect(turnScopedMetadata(base, [{ file_path: alphaSeed }], alpha)).toEqual(base);
   });

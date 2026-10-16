@@ -1,8 +1,9 @@
 import { createHmac } from "node:crypto";
 import { basename, dirname, join } from "node:path";
-import type {
-  CodingAgentMetadataOptions,
-  CodingAgentRunType,
+import {
+  type CodingAgentMetadataOptions,
+  type CodingAgentRunType,
+  withBothGitMetadataNames,
 } from "@langchain/plugins-base/metadata";
 import { metadataAfterFill, turnAttribution } from "@langchain/plugins-base/tracing/settlement";
 import type { RecordedRun, TurnRecord } from "@langchain/plugins-base/tracing/settlement";
@@ -36,7 +37,7 @@ export function legacyRuns(config: Config): LegacyScan {
     if (!entry?.run) scan.unreadable.push(file);
     if (!entry?.run || entry.origin !== origin) continue;
     const { extra, ...run } = entry.run;
-    const metadata = extra?.metadata ?? {};
+    const metadata = withBothGitMetadataNames(extra?.metadata ?? {});
     const base =
       entry.where && entry.tracing === "full"
         ? settledRepositoryMetadata(metadata, entry.where)

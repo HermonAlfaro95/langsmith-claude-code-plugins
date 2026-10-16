@@ -1,4 +1,8 @@
-import { buildCodingAgentMetadata } from "@langchain/plugins-base/metadata";
+import {
+  ATTRIBUTION_IDENTIFIER_KEY,
+  buildCodingAgentMetadata,
+  GIT_METADATA_KEYS,
+} from "@langchain/plugins-base/metadata";
 import { readSavedCaptureWake } from "@langchain/plugins-base/tracing";
 import type { LifecycleCaptureInput } from "@langchain/plugins-base/tracing/lifecycle";
 import type {
@@ -7,11 +11,9 @@ import type {
   PreparedRunSubmission,
 } from "@langchain/plugins-base/tracing/upload";
 import {
-  ATTRIBUTION_IDENTIFIER_KEY,
   CAPTURE_SAVED_STATUSES,
   LS_INTEGRATION,
   POST_EVENT_PREFIX,
-  REPOSITORY_NAME_KEY,
   RUN_CONTEXT_FIELDS,
   RUN_EVENT_PREFIXES,
   RUN_PATCH_FIELDS,
@@ -142,5 +144,5 @@ export async function posted(
 
 export function attributionReady(metadata: ClaudeRun["metadata"]): boolean {
   const built = buildCodingAgentMetadata(metadata);
-  return Boolean(built[REPOSITORY_NAME_KEY] && built[ATTRIBUTION_IDENTIFIER_KEY]);
+  return Boolean(built[GIT_METADATA_KEYS.repository] && built[ATTRIBUTION_IDENTIFIER_KEY]);
 }

@@ -203,13 +203,13 @@ describe("a turn working across repositories", () => {
     await stop(base);
 
     const inBeta = {
-      repository_name: "acme/b",
-      git_branch: "trunk-b",
+      ls_git_repo: "acme/b",
+      ls_git_branch: "trunk-b",
       ls_attribution_identifier: "Beta Owner",
     };
     await settled(() => {
       for (const name of ["Read", "Glob"]) expect(toolRun(name)).toMatchObject(inBeta);
-      expect(toolRun("Edit")).toMatchObject({ repository_name: "acme/a", git_branch: "trunk-a" });
+      expect(toolRun("Edit")).toMatchObject({ ls_git_repo: "acme/a", ls_git_branch: "trunk-a" });
     });
   }, 120_000);
 
@@ -223,8 +223,8 @@ describe("a turn working across repositories", () => {
     await stop(base);
 
     await settled(() => {
-      expect(toolRun("Glob")).toMatchObject({ repository_name: "acme/b" });
-      expect(toolRun("Bash").repository_name).toBeUndefined();
+      expect(toolRun("Glob")).toMatchObject({ ls_git_repo: "acme/b" });
+      expect(toolRun("Bash").ls_git_repo).toBeUndefined();
       expect(toolRun("Bash").ls_attribution_identifier).toBeUndefined();
     });
   }, 120_000);
@@ -239,14 +239,14 @@ describe("a turn working across repositories", () => {
     writeFileSync(path, transcript(join(beta, "seed.txt"), join(alpha, "seed.txt")));
     await stop(base);
 
-    const inBeta = { repository_name: "acme/b", ls_attribution_identifier: "Beta Owner" };
+    const inBeta = { ls_git_repo: "acme/b", ls_attribution_identifier: "Beta Owner" };
     await settled(() => {
       const turnRuns = posted.filter((run) => run.name === USER_PROMPT_TURN_NAME);
       expect(turnRuns.at(-1)?.extra?.metadata).toMatchObject(inBeta);
     });
     expect(toolRun("Glob")).toMatchObject(inBeta);
     expect(toolRun("Edit")).toMatchObject({
-      repository_name: "acme/a",
+      ls_git_repo: "acme/a",
       ls_attribution_identifier: "Alpha Owner",
     });
   }, 120_000);
@@ -275,7 +275,7 @@ describe("a turn working across repositories", () => {
     await settled(() => {
       const turnRuns = posted.filter((run) => run.name === USER_PROMPT_TURN_NAME);
       expect(turnRuns.at(-1)?.extra?.metadata).toMatchObject({
-        repository_name: "acme/b",
+        ls_git_repo: "acme/b",
         ls_attribution_identifier: "Beta Owner",
       });
     });
@@ -302,8 +302,8 @@ describe("a turn working across repositories", () => {
 
     await settled(() =>
       expect(toolRun("Read")).toMatchObject({
-        repository_name: "private/dotfiles",
-        git_branch: "trunk-home",
+        ls_git_repo: "private/dotfiles",
+        ls_git_branch: "trunk-home",
         ls_attribution_identifier: "Private Person",
       }),
     );
@@ -321,7 +321,7 @@ describe("a turn working across repositories", () => {
     await settled(() => {
       const turnRuns = posted.filter((run) => run.name === USER_PROMPT_TURN_NAME);
       expect(turnRuns.at(-1)?.extra?.metadata).toMatchObject({
-        repository_name: "acme/c",
+        ls_git_repo: "acme/c",
         ls_attribution_identifier: "ejaimez14",
       });
     });

@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { loadConfig } from "./config.js";
+import { loadConfig, pinnedRepositoryKeys } from "./config.js";
 import { execFileSync } from "node:child_process";
 
 vi.mock("node:child_process", { spy: true });
@@ -546,9 +546,23 @@ describe("loadConfig", () => {
     expect(config.customMetadata).toMatchObject({
       pr_url: "https://github.com/org/repo/pull/42",
       pr_author: "octocat",
-      repository_name: "langchain-ai/example",
-      repository_provider: "github",
+      ls_git_repo: "langchain-ai/example",
+      ls_repo_provider: "github",
     });
+  });
+
+  it("gives both names of a field the value the person set under either one", () => {
+    const url = "https://github.com/langchain-ai/example.git";
+    vi.mocked(execFileSync).mockImplementation(() => `origin\t${url} (fetch)`);
+    process.env.CC_LANGSMITH_METADATA = JSON.stringify({ repository_name: "chosen/repo" });
+
+    const config = loadConfig({ cwd: __dirname });
+
+    expect(config.customMetadata).toMatchObject({
+      repository_name: "chosen/repo",
+      ls_git_repo: "chosen/repo",
+    });
+    expect(pinnedRepositoryKeys(config.customMetadata)).toContain("ls_git_repo");
   });
 
   describe("coding-agent-v1 contract metadata", () => {
@@ -565,7 +579,7 @@ describe("loadConfig", () => {
       });
     });
 
-    it("derives repository_url + git_branch + git_commit_sha", () => {
+    it("derives ls_git_repo_url + ls_git_branch + ls_git_commit_hash", () => {
       vi.mocked(execFileSync).mockImplementation((_file: string, args?: readonly string[]) => {
         const command = args?.join(" ") ?? "";
         if (command.includes("remote -v")) {
@@ -578,11 +592,11 @@ describe("loadConfig", () => {
       });
       const config = loadConfig({ cwd: __dirname });
       expect(config.customMetadata).toMatchObject({
-        repository_name: "langchain-ai/example",
-        repository_provider: "github",
-        repository_url: "https://github.com/langchain-ai/example",
-        git_branch: "feature/my-branch",
-        git_commit_sha: "deadbeefcafe1234",
+        ls_git_repo: "langchain-ai/example",
+        ls_repo_provider: "github",
+        ls_git_repo_url: "https://github.com/langchain-ai/example",
+        ls_git_branch: "feature/my-branch",
+        ls_git_commit_hash: "deadbeefcafe1234",
       });
     });
   });

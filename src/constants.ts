@@ -46,16 +46,6 @@ const CURSOR_VERSION_FIELD = "cursor_version";
 
 const TOOL_PATH_INPUT_KEYS = ["file_path", "notebook_path", "path", "cwd"] as const;
 
-const TURN_REPOSITORY_KEYS = [
-  "repository_name",
-  "repository_provider",
-  "repository_url",
-  "git_branch",
-  "git_commit_sha",
-] as const;
-
-const REPOSITORY_METADATA_KEYS = [...TURN_REPOSITORY_KEYS, "ls_attribution_identifier"] as const;
-
 /** A symbol so it is never serialized and sent to LangSmith. */
 const PINNED_REPOSITORY_KEYS = Symbol("pinned repository metadata keys");
 
@@ -89,10 +79,6 @@ const ENGINE_WORKER_ARG = "--engine-worker";
 const STATE_FILE_DEFAULT = [".claude", "state", "langsmith_state.json"];
 
 const GH_LOGIN_MARKER_FILE = "langsmith_gh_login.json";
-
-const REPOSITORY_NAME_KEY = "repository_name";
-
-const ATTRIBUTION_IDENTIFIER_KEY = "ls_attribution_identifier";
 
 const BOOLEAN_SETTINGS = {
   enabled: { env: "TRACE_TO_LANGSMITH", ...COMMON_BOOLEAN_SETTINGS.enabled },
@@ -192,9 +178,6 @@ export {
   HOOK_EVENT_NAMES,
   CURSOR_VERSION_FIELD,
   TOOL_PATH_INPUT_KEYS,
-  REPOSITORY_METADATA_KEYS,
-  REPOSITORY_NAME_KEY,
-  ATTRIBUTION_IDENTIFIER_KEY,
   PINNED_REPOSITORY_KEYS,
   NO_PINNED_KEYS,
   STATE_FILE_DEFAULT,

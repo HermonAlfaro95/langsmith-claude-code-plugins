@@ -108,7 +108,19 @@ describe("runs and turns left by the previous version", () => {
     mkdirSync(queue, { recursive: true });
     const legacy = (key: string, id: string) => {
       const { metadata, ...fields } = run(id);
-      const queued = { ...fields, extra: { metadata: buildCodingAgentMetadata(metadata) } };
+      const queued = {
+        ...fields,
+        extra: {
+          metadata: {
+            ...buildCodingAgentMetadata(metadata),
+            repository_name: "acme/q",
+            repository_url: "https://github.com/acme/q",
+            repository_provider: "github",
+            git_branch: "trunk",
+            git_commit_sha: "abc123",
+          },
+        },
+      };
       const entry = { tracing: "full", attempts: 0, origin: legacyOrigin(key), run: queued };
       writeFileSync(join(queue, queueName(id)), JSON.stringify(entry));
       return id;
@@ -120,7 +132,23 @@ describe("runs and turns left by the previous version", () => {
 
     await runEngineWorker(root, "s1");
 
-    expect((await saved()).map(({ record }) => record.runId)).toEqual([ours]);
+    const records = (await saved()).map(({ record }) => record);
+    expect(records.map(({ runId }) => runId)).toEqual([ours]);
+    const base = (records[0]!.metadataProvenance as { base: Record<string, unknown> }).base;
+    expect(base).toMatchObject({
+      ls_git_repo: "acme/q",
+      ls_git_repo_url: "https://github.com/acme/q",
+      ls_repo_provider: "github",
+      ls_git_branch: "trunk",
+      ls_git_commit_hash: "abc123",
+    });
+    expect(base).toMatchObject({
+      repository_name: "acme/q",
+      repository_url: "https://github.com/acme/q",
+      repository_provider: "github",
+      git_branch: "trunk",
+      git_commit_sha: "abc123",
+    });
     expect(readdirSync(queue)).toEqual([queueName(theirs)]);
   });
 
@@ -180,7 +208,7 @@ describe("runs and turns left by the previous version", () => {
     );
     const filled = records.find(({ runId }) => runId === open)!;
     expect(filled.metadataProvenance).toMatchObject({
-      base: { repository_name: "acme/x" },
+      base: { ls_git_repo: "acme/x", repository_name: "acme/x" },
       runType: "llm",
       threadId: "t1",
     });

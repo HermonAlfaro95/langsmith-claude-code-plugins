@@ -9,12 +9,15 @@ import { join } from "node:path";
 import type { RunTreeConfig } from "langsmith";
 import type { StringNodeRule } from "langsmith/anonymizer";
 import { debug, error } from "./logger.js";
-import { getGitInfo, getRepoName, getRepoUrl } from "@langchain/plugins-base/git";
+import { getRepositoryMetadata } from "@langchain/plugins-base/git";
+import {
+  REPOSITORY_METADATA_KEYS,
+  withBothGitMetadataNames,
+} from "@langchain/plugins-base/metadata";
 import {
   BOOLEAN_SETTINGS,
   NO_PINNED_KEYS,
   PINNED_REPOSITORY_KEYS,
-  REPOSITORY_METADATA_KEYS,
   STATE_FILE_DEFAULT,
 } from "./constants.js";
 import type { BooleanSetting, Config, MetadataWithPins } from "./types.js";
@@ -183,7 +186,7 @@ export function loadConfig(options?: { cwd?: string; deferGit?: boolean }): Conf
   // Environment replicas retain their SDK format, including legacy tuples.
   if (replicas === undefined) replicas = toSdkReplicas(common.replicas);
   redactExtraRules ??= common.redact_extra_rules;
-  customMetadata = common.metadata;
+  customMetadata = common.metadata && withBothGitMetadataNames(common.metadata);
 
   // Attach identity metadata so every traced run can be attributed to a
   // specific Claude Code installation and local OS user. User-supplied
@@ -199,19 +202,7 @@ export function loadConfig(options?: { cwd?: string; deferGit?: boolean }): Conf
   }
 
   // Attach git repo metadata if available, to attribute runs to a specific codebase.
-  const repoMetadata: Record<string, unknown> = {};
-  if (!options?.deferGit) {
-    const repoName = getRepoName(cwd);
-    if (repoName != null) {
-      repoMetadata.repository_name = repoName.name;
-      repoMetadata.repository_provider = repoName.provider;
-      const url = getRepoUrl(repoName.provider, repoName.name);
-      if (url) repoMetadata.repository_url = url;
-    }
-    const gitInfo = getGitInfo(cwd);
-    if (gitInfo.branch) repoMetadata.git_branch = gitInfo.branch;
-    if (gitInfo.commit) repoMetadata.git_commit_sha = gitInfo.commit;
-  }
+  const repoMetadata = options?.deferGit ? {} : getRepositoryMetadata(cwd);
 
   const pinned = REPOSITORY_METADATA_KEYS.filter((key) => customMetadata?.[key] !== undefined);
   customMetadata = { cwd, ...identityMetadata, ...repoMetadata, ...customMetadata };
