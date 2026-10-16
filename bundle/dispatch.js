@@ -21108,7 +21108,7 @@ var LEGACY_TURN_FILE = new RegExp(`^${LEGACY_UUID}\\.turn\\.jsonl$`);
 var LEGACY_FLUSH_LOCK_FILE = new RegExp(`^[\\w.-]+\\.flush\\.lock(\\.${LEGACY_UUID}\\.lock\\.staging)?$`);
 
 // dist/src/integration-version.js
-var LS_INTEGRATION_VERSION = true ? "0.4.2" : process.env.CC_LANGSMITH_INTEGRATION_VERSION || void 0;
+var LS_INTEGRATION_VERSION = true ? "0.5.0" : process.env.CC_LANGSMITH_INTEGRATION_VERSION || void 0;
 
 // dist/src/logger.js
 import { appendFileSync, mkdirSync as mkdirSync4, statSync as statSync4, renameSync as renameSync3 } from "node:fs";

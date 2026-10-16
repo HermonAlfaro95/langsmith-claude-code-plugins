@@ -1,6 +1,6 @@
 {
   "name": "@langchain/langsmith-claude-code-plugins",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "description": "Claude Code plugin for LangSmith tracing",
   "type": "module",
   "scripts": {
