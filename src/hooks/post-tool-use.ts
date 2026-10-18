@@ -34,8 +34,9 @@ export async function main(): Promise<void> {
   if (!config) return;
 
   // Subagent tool calls are traced by the Stop hook from the transcript.
-  // Skip here to avoid double-tracing and orphan runs.
-  if (input.agent_id || input.agent_type) {
+  // Skip here to avoid double-tracing and orphan runs. A main-agent turn
+  // carries agent_type without agent_id and is traced here as usual.
+  if (input.agent_id) {
     debug("Skipping PostToolUse for subagent tool — Stop hook handles tracing");
     return;
   }

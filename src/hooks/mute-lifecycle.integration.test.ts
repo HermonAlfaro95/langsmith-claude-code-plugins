@@ -21,6 +21,7 @@ const h = vi.hoisted(() => ({
   beforePost: undefined as undefined | (() => void | Promise<void>),
   event: "" as string,
   errors: [] as unknown[],
+  parentDottedOrder: undefined as string | undefined,
 }));
 vi.mock("langsmith", () => ({
   Client: class {
@@ -74,6 +75,7 @@ vi.mock("../utils/hook-init.js", () => ({
     project: "test",
     stateFilePath: "/unused",
     defaultMuted: h.defaultMuted,
+    parentDottedOrder: h.parentDottedOrder,
     redact: false,
     customMetadata: { custom: "PRIVATE_MARKER", ls_model_name: "PRIVATE_MARKER" },
   }),
@@ -182,6 +184,7 @@ function reset(mode: TracingMode) {
   h.agentMessages = transcript();
   h.errors = [];
   h.beforePost = undefined;
+  h.parentDottedOrder = undefined;
 }
 const HOOK_EVENT_BY_NAME = {
   prompt: "UserPromptSubmit",
@@ -1182,5 +1185,28 @@ describe("privacy propagation without lifecycle changes", () => {
     await hook("end");
     expectPrivate();
     expect(h.errors).toEqual([]);
+  });
+});
+
+describe("a session that runs as a named agent", () => {
+  // Claude Code reports agent_type on the main session when a plugin declares a
+  // default agent, and adds agent_id only for an actual subagent.
+  const parent = "20260701T000000000000Z11111111-1111-4111-8111-111111111111";
+
+  it("nests the main-agent turn under the supplied parent dotted order", async () => {
+    reset("full");
+    h.parentDottedOrder = parent;
+    await hook("prompt", { agent_type: "example-plugin:orchestrator" });
+    const [turn] = topology();
+    expect(turn.name).toBe("Claude Code Turn");
+    expect(turn.trace).toBe("11111111-1111-4111-8111-111111111111");
+    expect(turn.order.startsWith(`${parent}.`)).toBe(true);
+  });
+
+  it("still leaves a subagent turn to the Stop hook", async () => {
+    reset("full");
+    h.parentDottedOrder = parent;
+    await hook("prompt", { agent_id: "agent-1", agent_type: "Explore" });
+    expect(h.operations).toEqual([]);
   });
 });

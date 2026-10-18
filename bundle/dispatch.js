@@ -23795,7 +23795,7 @@ async function main2() {
   const config = initHook(input.cwd, { deferGit: true });
   if (!config)
     return;
-  if (input.agent_id || input.agent_type) {
+  if (input.agent_id) {
     debug("Skipping PostToolUse for subagent tool \u2014 Stop hook handles tracing");
     return;
   }
@@ -24751,7 +24751,7 @@ async function main9() {
   if (!config)
     return;
   debug(`UserPromptSubmit hook started, session=${input.session_id}`);
-  if (input.agent_id || input.agent_type) {
+  if (input.agent_id) {
     debug("Skipping UserPromptSubmit for subagent \u2014 Stop hook handles tracing");
     return;
   }

@@ -93,8 +93,10 @@ export async function main(): Promise<void> {
   debug(`UserPromptSubmit hook started, session=${input.session_id}`);
 
   // Subagent turns are traced entirely by the Stop hook from the transcript.
-  // Skip here to avoid orphan runs with incorrect nesting.
-  if (input.agent_id || input.agent_type) {
+  // Skip here to avoid orphan runs with incorrect nesting. Only agent_id marks
+  // a subagent: the main session also reports agent_type when the session runs
+  // as a named agent, and skipping it there drops the turn's parent run.
+  if (input.agent_id) {
     debug("Skipping UserPromptSubmit for subagent — Stop hook handles tracing");
     return;
   }
