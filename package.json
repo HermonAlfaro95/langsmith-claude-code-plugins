@@ -24,7 +24,7 @@
     "clean": "rm -rf dist bin"
   },
   "dependencies": {
-    "langsmith": "^0.10.5"
+    "langsmith": "^0.10.11"
   },
   "devDependencies": {
     "@langchain/plugins-base": "0.4.3",
