@@ -7,9 +7,8 @@ import {
 import { homedir, userInfo } from "node:os";
 import { join } from "node:path";
 import type { RunTreeConfig } from "langsmith";
-import type { StringNodeRule } from "langsmith/anonymizer";
+import type { CommonRedactRule } from "@langchain/plugins-base/settings";
 import { debug, error } from "./logger.js";
-import { getRepositoryMetadata } from "@langchain/plugins-base/git";
 import {
   REPOSITORY_METADATA_KEYS,
   withBothGitMetadataNames,
@@ -77,7 +76,7 @@ export function resolveStateFilePath(): string {
   return process.env.STATE_FILE ?? join(homedir(), ...STATE_FILE_DEFAULT);
 }
 
-export function loadConfig(options?: { cwd?: string; deferGit?: boolean }): Config {
+export function loadConfig(options?: { cwd?: string }): Config {
   const cwd = options?.cwd ?? process.cwd();
   const homeDir = homedir();
   const stateFilePath = resolveStateFilePath();
@@ -120,7 +119,7 @@ export function loadConfig(options?: { cwd?: string; deferGit?: boolean }): Conf
 
   // Optional user-supplied redaction rules: JSON array of { pattern, replace }.
   // `pattern` is a string (compiled with the global flag by the SDK anonymizer).
-  let redactExtraRules: StringNodeRule[] | undefined;
+  let redactExtraRules: CommonRedactRule[] | undefined;
   const providedExtra = process.env.CC_LANGSMITH_REDACT_EXTRA;
   if (providedExtra !== undefined) {
     try {
@@ -131,7 +130,7 @@ export function loadConfig(options?: { cwd?: string; deferGit?: boolean }): Conf
         // Validate each rule's shape and compile its pattern here, so a malformed
         // rule surfaces as a logged error instead of throwing inside
         // createSecretAnonymizer — which would break tracing for the whole session.
-        const validRules: StringNodeRule[] = [];
+        const validRules: CommonRedactRule[] = [];
         for (const rule of parsed) {
           if (
             typeof rule !== "object" ||
@@ -177,15 +176,17 @@ export function loadConfig(options?: { cwd?: string; deferGit?: boolean }): Conf
         project: process.env.CC_LANGSMITH_PROJECT,
         metadata: customMetadata,
         redact: process.env.CC_LANGSMITH_REDACT === undefined ? undefined : redact,
-        // Environment rules retain the existing tolerant parser.
+        redact_extra_rules: redactExtraRules,
       },
       defaults: { api_key: "", api_url: "https://api.smith.langchain.com", project: "claude-code" },
     },
     { envFirst: true },
   );
   // Environment replicas retain their SDK format, including legacy tuples.
-  if (replicas === undefined) replicas = toSdkReplicas(common.replicas);
-  redactExtraRules ??= common.redact_extra_rules;
+  if (replicas === undefined || common.locked.includes("replicas")) {
+    replicas = toSdkReplicas(common.replicas);
+  }
+  redactExtraRules = common.redact_extra_rules;
   customMetadata = common.metadata && withBothGitMetadataNames(common.metadata);
 
   // Attach identity metadata so every traced run can be attributed to a
@@ -201,11 +202,8 @@ export function loadConfig(options?: { cwd?: string; deferGit?: boolean }): Conf
     identityMetadata.anthropic_user_id = anthropicUserId;
   }
 
-  // Attach git repo metadata if available, to attribute runs to a specific codebase.
-  const repoMetadata = options?.deferGit ? {} : getRepositoryMetadata(cwd);
-
   const pinned = REPOSITORY_METADATA_KEYS.filter((key) => customMetadata?.[key] !== undefined);
-  customMetadata = { cwd, ...identityMetadata, ...repoMetadata, ...customMetadata };
+  customMetadata = { cwd, ...identityMetadata, ...customMetadata };
   // Carried privately so per-tool attribution can leave these alone; spreading drops it.
   Object.defineProperty(customMetadata, PINNED_REPOSITORY_KEYS, { value: new Set<string>(pinned) });
 
@@ -222,5 +220,8 @@ export function loadConfig(options?: { cwd?: string; deferGit?: boolean }): Conf
     customMetadata,
     redact: common.redact,
     redactExtraRules,
+    ...(common.managedConfigProblem === undefined
+      ? {}
+      : { managedConfigProblem: common.managedConfigProblem }),
   };
 }

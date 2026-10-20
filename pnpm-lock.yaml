@@ -12,12 +12,12 @@ importers:
   .:
     dependencies:
       langsmith:
-        specifier: ^0.10.5
-        version: 0.10.5
+        specifier: ^0.10.11
+        version: 0.10.11
     devDependencies:
       '@langchain/plugins-base':
-        specifier: 0.4.3
-        version: 0.4.3(langsmith@0.10.5)
+        specifier: 0.4.5
+        version: 0.4.5(langsmith@0.10.11)
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.5
@@ -211,8 +211,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@langchain/plugins-base@0.4.3':
-    resolution: {integrity: sha512-tU/4w1FDyUkC0dGWtEMrRmHuyb1VgS6LjzJtF2AY9Uj8IW768pBX1lgMfxf3abtQnSAkJ73IIPNbTnFhFCdOVQ==}
+  '@langchain/plugins-base@0.4.5':
+    resolution: {integrity: sha512-7Mag+SF7fkLUFDtMVl6x5PIc30Jhnb2ztOc+6NEiwiCcsBd+daj5/Adbauicl5DQ7667RUCT6mtakJiPl95Dgw==}
     engines: {node: '>=20'}
     hasBin: true
     peerDependencies:
@@ -754,8 +754,8 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
-  langsmith@0.10.5:
-    resolution: {integrity: sha512-VUh6LQYGb+wjmMz5Ulazqx1rUHLbWi2XZvVkSHfxDjz6V7u9TJOB6jW5CC84xcpffu7Jr1MZpBbEz3gg972HbA==}
+  langsmith@0.10.11:
+    resolution: {integrity: sha512-99ySd5piFC/y0kyKxlUODamdxYuHs0Sbnz47mop0SypvOaRT8REuB1vd8QpESBag8sHW0QPSXvUbhXpn2+v9yQ==}
     peerDependencies:
       '@opentelemetry/api': '*'
       '@opentelemetry/exporter-trace-otlp-proto': '*'
@@ -1128,9 +1128,9 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
 
-  '@langchain/plugins-base@0.4.3(langsmith@0.10.5)':
+  '@langchain/plugins-base@0.4.5(langsmith@0.10.11)':
     dependencies:
-      langsmith: 0.10.5
+      langsmith: 0.10.11
 
   '@oxc-project/types@0.153.0': {}
 
@@ -1431,7 +1431,7 @@ snapshots:
   fsevents@2.3.3:
     optional: true
 
-  langsmith@0.10.5:
+  langsmith@0.10.11:
     dependencies:
       p-queue: 6.6.2
 

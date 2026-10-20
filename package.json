@@ -1,6 +1,6 @@
 {
   "name": "@langchain/langsmith-claude-code-plugins",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Claude Code plugin for LangSmith tracing",
   "type": "module",
   "scripts": {
@@ -24,10 +24,10 @@
     "clean": "rm -rf dist bin"
   },
   "dependencies": {
-    "langsmith": "^0.10.5"
+    "langsmith": "^0.10.11"
   },
   "devDependencies": {
-    "@langchain/plugins-base": "0.4.3",
+    "@langchain/plugins-base": "0.4.5",
     "@types/node": "^26.6.5",
     "esbuild": "^0.28.1",
     "oxfmt": "^0.72.0",

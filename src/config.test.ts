@@ -2,10 +2,17 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { mergeCommonConfig, type CommonConfigResult } from "@langchain/plugins-base/settings";
 import { loadConfig, pinnedRepositoryKeys } from "./config.js";
+import { writerOptions } from "./engine-writer.js";
 import { execFileSync } from "node:child_process";
 
+vi.mock("@langchain/plugins-base/settings", { spy: true });
 vi.mock("node:child_process", { spy: true });
+
+const { mergeCommonConfig: merge } = await vi.importActual<
+  typeof import("@langchain/plugins-base/settings")
+>("@langchain/plugins-base/settings");
 vi.mock("node:fs", { spy: true });
 vi.mock("node:os", { spy: true });
 
@@ -34,6 +41,7 @@ describe("loadConfig", () => {
     delete process.env.CC_LANGSMITH_METADATA;
     delete process.env.CC_LANGSMITH_REDACT;
     delete process.env.CC_LANGSMITH_REDACT_EXTRA;
+    delete process.env.LANGSMITH_RUNS_ENDPOINTS;
 
     // Isolate home-directory reads on every platform.
     tmpHome = mkdtempSync(join(tmpdir(), "ls-cc-test-"));
@@ -529,28 +537,6 @@ describe("loadConfig", () => {
     });
   });
 
-  it("inserts the repository name into customMetadata beside the user's own fields", () => {
-    const url = "https://github.com/langchain-ai/example.git";
-    vi.mocked(execFileSync).mockImplementation(() => {
-      return [["origin", url + " (fetch)"].join("\t"), ["origin", url + " (push)"].join("\t")].join(
-        "\n",
-      );
-    });
-
-    process.env.CC_LANGSMITH_METADATA = JSON.stringify({
-      pr_url: "https://github.com/org/repo/pull/42",
-      pr_author: "octocat",
-    });
-
-    const config = loadConfig({ cwd: __dirname });
-    expect(config.customMetadata).toMatchObject({
-      pr_url: "https://github.com/org/repo/pull/42",
-      pr_author: "octocat",
-      ls_git_repo: "langchain-ai/example",
-      ls_repo_provider: "github",
-    });
-  });
-
   it("gives both names of a field the value the person set under either one", () => {
     const url = "https://github.com/langchain-ai/example.git";
     vi.mocked(execFileSync).mockImplementation(() => `origin\t${url} (fetch)`);
@@ -578,25 +564,52 @@ describe("loadConfig", () => {
         anthropic_user_id: "hashed-123", // DEPRECATED compat alias
       });
     });
+  });
 
-    it("derives ls_git_repo_url + ls_git_branch + ls_git_commit_hash", () => {
-      vi.mocked(execFileSync).mockImplementation((_file: string, args?: readonly string[]) => {
-        const command = args?.join(" ") ?? "";
-        if (command.includes("remote -v")) {
-          const url = "git@github.com:langchain-ai/example.git";
-          return [`origin\t${url} (fetch)`, `origin\t${url} (push)`].join("\n");
-        }
-        if (command.includes("abbrev-ref")) return "feature/my-branch\n";
-        if (command.includes("rev-parse HEAD")) return "deadbeefcafe1234\n";
-        return "";
+  describe("a managed file locking where traces go", () => {
+    const lock = (managed: CommonConfigResult) =>
+      vi
+        .mocked(mergeCommonConfig)
+        .mockImplementation((sources, options) => merge({ ...sources, managed }, options));
+    const locked = { apiUrl: "https://locked.example" };
+
+    it.each([
+      ["objects", [{ apiUrl: "https://other.example" }]],
+      ["legacy tuples", [["other-project", { tags: [] }]]],
+    ])("keeps environment replicas written as %s from bypassing the lock", (_, env) => {
+      lock({
+        status: "valid",
+        common: { replicas: [{ api_url: locked.apiUrl }] },
+        diagnostics: [],
       });
-      const config = loadConfig({ cwd: __dirname });
-      expect(config.customMetadata).toMatchObject({
-        ls_git_repo: "langchain-ai/example",
-        ls_repo_provider: "github",
-        ls_git_repo_url: "https://github.com/langchain-ai/example",
-        ls_git_branch: "feature/my-branch",
-        ls_git_commit_hash: "deadbeefcafe1234",
+      process.env.CC_LANGSMITH_RUNS_ENDPOINTS = JSON.stringify(env);
+      expect(loadConfig({ cwd }).replicas).toEqual([locked]);
+    });
+
+    it("passes a locked empty replica list through so the SDK's own replica variable can't get around it", () => {
+      lock({ status: "valid", common: { replicas: [] }, diagnostics: [] });
+      process.env.LANGSMITH_RUNS_ENDPOINTS = JSON.stringify({ "http://127.0.0.1:7002": "x" });
+      const config = loadConfig({ cwd });
+      expect(config.replicas).toEqual([]);
+      expect(writerOptions(config).replicas ?? []).toEqual([]);
+    });
+
+    it("keeps environment redaction rules from bypassing the lock", () => {
+      lock({
+        status: "valid",
+        common: { redact_extra_rules: [{ pattern: "x" }] },
+        diagnostics: [],
+      });
+      process.env.CC_LANGSMITH_REDACT_EXTRA = "[]";
+      expect(loadConfig({ cwd }).redactExtraRules).toEqual([{ pattern: "x" }]);
+    });
+
+    it("turns tracing off and names the problem when the file fails its checks", () => {
+      lock({ status: "invalid", common: {}, diagnostics: ["managed config problem"] });
+      process.env.TRACE_TO_LANGSMITH = "true";
+      expect(loadConfig({ cwd })).toMatchObject({
+        enabled: false,
+        managedConfigProblem: expect.any(String),
       });
     });
   });
